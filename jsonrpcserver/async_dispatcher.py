@@ -24,13 +24,13 @@ from .dispatcher import (
 from .exceptions import JsonRpcError
 from .methods import Method, Methods
 from .request import Request
-from .response import Response, ServerErrorResponse
+from .response import InvalidRequestResponse, Response, ServerErrorResponse
 from .result import ErrorResult, InternalErrorResult, Result
-from .utils import make_list
+from .utils import identity, make_list
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=missing-function-docstring,duplicate-code
+# pylint: disable=missing-function-docstring,duplicate-code,protected-access
 
 
 async def call(request: Request, context: Any, method: Method) -> Result:
@@ -85,6 +85,25 @@ async def dispatch_deserialized(
     )
 
 
+async def dispatch_single(
+    validator: Callable[[Deserialized], Deserialized],
+    methods: Methods,
+    context: Any,
+    deserialized: Deserialized,
+) -> Union[Response, None]:
+    """Validate and dispatch one member of a batch."""
+    result = (
+        Left(InvalidRequestResponse("The request failed schema validation"))
+        if isinstance(deserialized, list)
+        else validate_request(validator, deserialized)
+    )
+    return (
+        result
+        if isinstance(result, Left)
+        else await dispatch_deserialized(methods, context, identity, result._value)
+    )
+
+
 async def dispatch_to_response_pure(
     *,
     deserializer: Callable[[str], Deserialized],
@@ -95,9 +114,26 @@ async def dispatch_to_response_pure(
     request: str,
 ) -> Union[Response, Iterable[Response], None]:
     try:
-        result = deserialize_request(deserializer, request).bind(
-            partial(validate_request, validator)
-        )
+        result = deserialize_request(deserializer, request)
+        if (
+            not isinstance(result, Left)
+            and isinstance(result._value, list)
+            and result._value
+        ):
+            responses = await asyncio.gather(
+                *(
+                    dispatch_single(validator, methods, context, member)
+                    for member in result._value
+                )
+            )
+            return extract_list(
+                True,
+                map(
+                    post_process,
+                    filter(lambda response: response is not None, responses),
+                ),
+            )
+        result = result.bind(partial(validate_request, validator))
         return (
             post_process(result)
             if isinstance(result, Left)

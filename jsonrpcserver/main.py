@@ -54,8 +54,9 @@ def dispatch_to_response(
         context: If given, will be passed as the first argument to methods.
         deserializer: Function that deserializes the request string.
         validator: Function that validates the JSON-RPC request. The function should
-            raise an exception if the request is invalid. To disable validation, pass
-            lambda _: None.
+            raise an exception if the request is invalid. Batch members are validated
+            individually, with nested arrays rejected before calling the validator.
+            To disable validation, pass lambda _: None.
         post_process: Function that will be applied to Responses.
 
     Returns:

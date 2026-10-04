@@ -31,7 +31,7 @@ from .result import (
     SuccessResult,
 )
 from .sentinels import NOCONTEXT, NOID
-from .utils import compose, make_list
+from .utils import compose, identity, make_list
 
 Deserialized = Union[Dict[str, Any], List[Dict[str, Any]]]
 
@@ -254,6 +254,25 @@ def deserialize_request(
         return Left(ParseErrorResponse(str(exc)))
 
 
+def dispatch_single(
+    validator: Callable[[Deserialized], Deserialized],
+    methods: Methods,
+    context: Any,
+    deserialized: Deserialized,
+) -> Union[Response, None]:
+    """Validate and dispatch one member of a batch."""
+    result = (
+        Left(InvalidRequestResponse("The request failed schema validation"))
+        if isinstance(deserialized, list)
+        else validate_request(validator, deserialized)
+    )
+    return (
+        result
+        if isinstance(result, Left)
+        else dispatch_deserialized(methods, context, identity, result._value)
+    )
+
+
 def dispatch_to_response_pure(
     *,
     deserializer: Callable[[str], Deserialized],
@@ -271,9 +290,24 @@ def dispatch_to_response_pure(
         respond.
     """
     try:
-        result = deserialize_request(deserializer, request).bind(
-            partial(validate_request, validator)
-        )
+        result = deserialize_request(deserializer, request)
+        if (
+            not isinstance(result, Left)
+            and isinstance(result._value, list)
+            and result._value
+        ):
+            responses = map(
+                partial(dispatch_single, validator, methods, context),
+                result._value,
+            )
+            return extract_list(
+                True,
+                map(
+                    post_process,
+                    filter(lambda response: response is not None, responses),
+                ),
+            )
+        result = result.bind(partial(validate_request, validator))
         return (
             post_process(result)
             if isinstance(result, Left)
