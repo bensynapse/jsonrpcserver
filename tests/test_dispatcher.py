@@ -41,7 +41,11 @@ from jsonrpcserver.main import (
 )
 from jsonrpcserver.methods import method
 from jsonrpcserver.request import Request
-from jsonrpcserver.response import ErrorResponse, SuccessResponse
+from jsonrpcserver.response import (
+    ErrorResponse,
+    InvalidRequestResponse,
+    SuccessResponse,
+)
 from jsonrpcserver.result import (
     ErrorResult,
     InvalidParams,
@@ -696,7 +700,7 @@ def test_dispatch_to_response_with_global_methods() -> None:
         return Success("ping")
 
     response = dispatch_to_response('{"jsonrpc": "2.0", "method": "ping", "id": 1}')
-    assert response == Right(SuccessResponse("pong", 1))
+    assert response == Right(SuccessResponse("ping", 1))
 
 
 # The remaining tests are direct from the examples in the specification
@@ -826,10 +830,6 @@ def test_examples_empty_array() -> None:
 
 
 def test_examples_invalid_jsonrpc_batch() -> None:
-    """
-    We break the spec here, by not validating each request in the batch individually.
-    The examples are expecting a batch response full of error responses.
-    """
     response = dispatch_to_response_pure(
         deserializer=default_deserializer,
         validator=default_validator,
@@ -838,21 +838,12 @@ def test_examples_invalid_jsonrpc_batch() -> None:
         methods={"ping": ping},
         request="[1]",
     )
-    assert response == Left(
-        ErrorResponse(
-            ERROR_INVALID_REQUEST,
-            "Invalid request",
-            "The request failed schema validation",
-            None,
-        )
-    )
+    assert response == [
+        Left(InvalidRequestResponse("The request failed schema validation"))
+    ]
 
 
 def test_examples_multiple_invalid_jsonrpc() -> None:
-    """
-    We break the spec here, by not validating each request in the batch individually.
-    The examples are expecting a batch response full of error responses.
-    """
     response = dispatch_to_response_pure(
         deserializer=default_deserializer,
         validator=default_validator,
@@ -861,13 +852,9 @@ def test_examples_multiple_invalid_jsonrpc() -> None:
         methods={"ping": ping},
         request="[1, 2, 3]",
     )
-    assert response == Left(
-        ErrorResponse(
-            ERROR_INVALID_REQUEST,
-            "Invalid request",
-            "The request failed schema validation",
-            None,
-        )
+    assert (
+        response
+        == [Left(InvalidRequestResponse("The request failed schema validation"))] * 3
     )
 
 
@@ -887,6 +874,7 @@ def test_examples_mixed_requests_and_notifications() -> None:
             {"jsonrpc": "2.0", "method": "sum", "params": [1,2,4], "id": "1"},
             {"jsonrpc": "2.0", "method": "notify_hello", "params": [7]},
             {"jsonrpc": "2.0", "method": "subtract", "params": [42,23], "id": "2"},
+            {"foo": "boo"},
             {"jsonrpc": "2.0", "method": "foo.get", "params": {"name": "myself"}, "id": "5"},
             {"jsonrpc": "2.0", "method": "get_data", "id": "9"}
         ]""",
@@ -894,6 +882,15 @@ def test_examples_mixed_requests_and_notifications() -> None:
     assert json.loads(response) == [
         {"jsonrpc": "2.0", "result": 7, "id": "1"},
         {"jsonrpc": "2.0", "result": 19, "id": "2"},
+        {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": ERROR_INVALID_REQUEST,
+                "message": "Invalid request",
+                "data": "The request failed schema validation",
+            },
+            "id": None,
+        },
         {
             "jsonrpc": "2.0",
             "error": {"code": -32601, "message": "Method not found", "data": "foo.get"},
