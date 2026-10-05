@@ -248,14 +248,14 @@ async def test_batch_post_process_preserves_none(asynchronous: bool) -> None:
         '{"jsonrpc": "2.0", "method": "ping"}]'
     )
     methods: Dict[str, Any] = {"ping": ping if asynchronous else sync_ping}
-    options: Dict[str, Any] = dict(
-        deserializer=default_deserializer,
-        validator=default_validator,
-        methods=methods,
-        context=NOCONTEXT,
-        post_process=post_process,
-        request=request,
-    )
+    options: Dict[str, Any] = {
+        "deserializer": default_deserializer,
+        "validator": default_validator,
+        "methods": methods,
+        "context": NOCONTEXT,
+        "post_process": post_process,
+        "request": request,
+    }
     response = (
         await dispatch_to_response_pure(**options)
         if asynchronous
