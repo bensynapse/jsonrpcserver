@@ -1,5 +1,7 @@
 """Test main.py"""
 
+import json
+
 from oslash.either import Right  # type: ignore
 
 from jsonrpcserver.main import (
@@ -42,3 +44,44 @@ def test_dispatch_to_json_notification() -> None:
     assert (
         dispatch_to_json('{"jsonrpc": "2.0", "method": "ping"}', {"ping": ping}) == ""
     )
+
+
+SECRET = "could not connect: postgresql://admin:hunter2@db.internal/prod"
+
+
+def leak() -> Result:
+    raise RuntimeError(SECRET)
+
+
+def test_dispatch_hides_exception_message() -> None:
+    response = dispatch_to_json(
+        '{"jsonrpc": "2.0", "method": "leak", "id": 1}', {"leak": leak}
+    )
+    assert json.loads(response) == {
+        "jsonrpc": "2.0",
+        "error": {"code": -32603, "message": "Internal error"},
+        "id": 1,
+    }
+    assert "hunter2" not in response
+
+
+def test_dispatch_debug_shows_exception_message() -> None:
+    assert json.loads(
+        dispatch_to_json(
+            '{"jsonrpc": "2.0", "method": "leak", "id": 1}', {"leak": leak}, debug=True
+        )
+    ) == {
+        "jsonrpc": "2.0",
+        "error": {"code": -32603, "message": "Internal error", "data": SECRET},
+        "id": 1,
+    }
+
+
+def test_dispatch_to_serializable_debug() -> None:
+    assert dispatch_to_serializable(
+        '{"jsonrpc": "2.0", "method": "leak", "id": 1}', {"leak": leak}, debug=True
+    ) == {
+        "jsonrpc": "2.0",
+        "error": {"code": -32603, "message": "Internal error", "data": SECRET},
+        "id": 1,
+    }

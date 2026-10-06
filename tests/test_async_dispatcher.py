@@ -55,12 +55,39 @@ async def test_call_raising_jsonrpcerror() -> None:
 
 @pytest.mark.asyncio
 async def test_call_raising_exception() -> None:
+    """The exception message must not reach the client by default."""
+
     def method() -> None:
         raise ValueError("foo")
 
     assert await call(Request("ping", [], 1), NOCONTEXT, method) == Left(
+        ErrorResult(ERROR_INTERNAL_ERROR, "Internal error", NODATA)
+    )
+
+
+@pytest.mark.asyncio
+async def test_call_raising_exception_debug() -> None:
+    def method() -> None:
+        raise ValueError("foo")
+
+    assert await call(Request("ping", [], 1), NOCONTEXT, method, debug=True) == Left(
         ErrorResult(ERROR_INTERNAL_ERROR, "Internal error", "foo")
     )
+
+
+@pytest.mark.asyncio
+async def test_call_raising_exception_is_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def method() -> Result:
+        raise ValueError("secret detail")
+
+    await call(Request("ping", [], 1), NOCONTEXT, method)
+    (record,) = caplog.records
+    assert record.name == "jsonrpcserver.async_dispatcher"
+    assert record.getMessage() == "Method 'ping' raised an exception"
+    assert record.exc_info is not None
+    assert str(record.exc_info[1]) == "secret detail"
 
 
 @pytest.mark.asyncio
@@ -94,9 +121,12 @@ async def test_dispatch_to_response_pure_success() -> None:
     ) == Right(SuccessResponse("pong", 1))
 
 
+@pytest.mark.parametrize("debug,data", [(False, NODATA), (True, "foo")])
 @patch("jsonrpcserver.async_dispatcher.dispatch_request", side_effect=ValueError("foo"))
 @pytest.mark.asyncio
-async def test_dispatch_to_response_pure_server_error(*_: Mock) -> None:
+async def test_dispatch_to_response_pure_server_error(
+    _: Mock, debug: bool, data: Any
+) -> None:
     async def hello() -> Result:
         return Success()
 
@@ -107,7 +137,8 @@ async def test_dispatch_to_response_pure_server_error(*_: Mock) -> None:
         context=NOCONTEXT,
         methods={"hello": hello},
         request='{"jsonrpc": "2.0", "method": "hello", "id": 1}',
-    ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", "foo", None))
+        debug=debug,
+    ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", data, None))
 
 
 @pytest.mark.asyncio

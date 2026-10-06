@@ -22,6 +22,7 @@ async def dispatch_to_response(
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
+    debug: bool = False,
 ) -> Union[Response, Iterable[Response], None]:
     return await dispatch_to_response_pure(
         deserializer=deserializer,
@@ -30,6 +31,7 @@ async def dispatch_to_response(
         context=context,
         methods=global_methods if methods is None else methods,
         request=request,
+        debug=debug,
     )
 
 

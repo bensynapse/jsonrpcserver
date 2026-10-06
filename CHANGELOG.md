@@ -1,5 +1,33 @@
 # jsonrpcserver Change Log
 
+## 5.0.10
+
+### Security
+
+When a method raised an exception it didn't catch, the error response sent to
+the client included the exception message in `error.data`. Exception messages
+from database drivers, HTTP clients and the like often contain connection
+strings, passwords, hostnames, file paths or SQL. Anyone who could call a method
+could read them.
+
+The response now leaves `data` out:
+
+```json
+{"jsonrpc": "2.0", "error": {"code": -32603, "message": "Internal error"}, "id": 1}
+```
+
+The same applies to the -32000 "Server error" response for errors inside
+jsonrpcserver itself. The exception and its traceback are still logged, through
+the `jsonrpcserver.dispatcher` and `jsonrpcserver.async_dispatcher` loggers, so
+you can find them in your server logs.
+
+To get the old behaviour back while developing, pass `debug=True` to
+`dispatch`, `async_dispatch` or any of the other dispatch functions. Don't turn
+it on in production.
+
+Errors you return on purpose, with `Error`, `InvalidParams` or by raising
+`JsonRpcError`, are not affected. Their `data` is sent as before.
+
 ## 5.0.9 (Sep 15, 2022)
 
 - Remove unncessary `package_data` from setup.py (#243)

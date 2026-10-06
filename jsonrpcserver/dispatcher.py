@@ -30,7 +30,7 @@ from .result import (
     Result,
     SuccessResult,
 )
-from .sentinels import NOCONTEXT, NOID
+from .sentinels import NOCONTEXT, NODATA, NOID
 from .utils import compose, identity, make_list
 
 Deserialized = Union[Dict[str, Any], List[Dict[str, Any]]]
@@ -117,10 +117,20 @@ def validate_result(result: Result) -> None:
     ), f"The method did not return a valid Result (returned {result!r})"
 
 
-def call(request: Request, context: Any, method: Method) -> Result:
+def exception_data(exc: BaseException, debug: bool) -> Any:
+    """The "data" member of the error response for an unexpected exception.
+
+    Exception messages often hold things a client must not see, like connection
+    strings, file paths and SQL, so they're only included in debug mode.
+    """
+    return str(exc) if debug else NODATA
+
+
+def call(request: Request, context: Any, method: Method, debug: bool = False) -> Result:
     """Call the method.
 
     Handles any exceptions raised in the method, being sure to return an Error response.
+    The exception is logged. Its message goes in the response only if debug is True.
 
     Returns: A Result.
     """
@@ -135,9 +145,9 @@ def call(request: Request, context: Any, method: Method) -> Result:
     except JsonRpcError as exc:
         return Left(ErrorResult(code=exc.code, message=exc.message, data=exc.data))
     # Any other uncaught exception inside method - internal error.
-    except Exception as exc:  # pylint: disable=broad-except
-        logger.exception(exc)
-        return Left(InternalErrorResult(str(exc)))
+    except Exception as exc:
+        logger.exception("Method %r raised an exception", request.method)
+        return Left(InternalErrorResult(exception_data(exc, debug)))
     return result
 
 
@@ -167,7 +177,7 @@ def get_method(methods: Methods, method_name: str) -> Either[ErrorResult, Method
 
 
 def dispatch_request(
-    methods: Methods, context: Any, request: Request
+    methods: Methods, context: Any, request: Request, debug: bool = False
 ) -> Tuple[Request, Result]:
     """Get the method, validates the arguments and calls the method.
 
@@ -179,7 +189,7 @@ def dispatch_request(
         request,
         get_method(methods, request.method)
         .bind(partial(validate_args, request, context))
-        .bind(partial(call, request, context)),
+        .bind(partial(call, request, context, debug=debug)),
     )
 
 
@@ -203,6 +213,7 @@ def dispatch_deserialized(
     context: Any,
     post_process: Callable[[Response], Iterable[Any]],
     deserialized: Deserialized,
+    debug: bool = False,
 ) -> Union[Response, List[Response], None]:
     """This is simply continuing the pipeline from dispatch_to_response_pure. It exists
     only to be an abstraction, otherwise that function is doing too much. It continues
@@ -212,7 +223,9 @@ def dispatch_deserialized(
         applied to the Response(s).
     """
     results = map(
-        compose(partial(dispatch_request, methods, context), create_request),
+        compose(
+            partial(dispatch_request, methods, context, debug=debug), create_request
+        ),
         make_list(deserialized),
     )
     responses = starmap(to_response, filter(not_notification, results))
@@ -259,6 +272,7 @@ def dispatch_single(
     methods: Methods,
     context: Any,
     deserialized: Deserialized,
+    debug: bool = False,
 ) -> Union[Response, None]:
     """Validate and dispatch one member of a batch."""
     result = (
@@ -269,7 +283,9 @@ def dispatch_single(
     return (
         result
         if isinstance(result, Left)
-        else dispatch_deserialized(methods, context, identity, result._value)
+        else dispatch_deserialized(
+            methods, context, identity, result._value, debug=debug
+        )
     )
 
 
@@ -281,9 +297,13 @@ def dispatch_to_response_pure(
     context: Any,
     post_process: Callable[[Response], Iterable[Any]],
     request: str,
+    debug: bool = False,
 ) -> Union[Response, List[Response], None]:
     """A function from JSON-RPC request string to Response namedtuple(s), (yet to be
     serialized to json).
+
+    If debug is True, error responses for unexpected exceptions include the exception
+    message in "data". Leave it off in production.
 
     Returns: A single Response, a list of Responses, or None. None is given for
         notifications or batches of notifications, to indicate that we should not
@@ -297,7 +317,7 @@ def dispatch_to_response_pure(
             and result._value
         ):
             responses = map(
-                partial(dispatch_single, validator, methods, context),
+                partial(dispatch_single, validator, methods, context, debug=debug),
                 result._value,
             )
             return extract_list(
@@ -311,9 +331,11 @@ def dispatch_to_response_pure(
         return (
             post_process(result)
             if isinstance(result, Left)
-            else dispatch_deserialized(methods, context, post_process, result._value)
+            else dispatch_deserialized(
+                methods, context, post_process, result._value, debug=debug
+            )
         )
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:
         # There was an error with the jsonrpcserver library.
-        logger.exception(exc)
-        return post_process(Left(ServerErrorResponse(str(exc), None)))
+        logger.exception("Error while dispatching the request")
+        return post_process(Left(ServerErrorResponse(exception_data(exc, debug), None)))

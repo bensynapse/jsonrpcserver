@@ -12,6 +12,7 @@ from .dispatcher import (
     Deserialized,
     create_request,
     deserialize_request,
+    exception_data,
     extract_args,
     extract_kwargs,
     extract_list,
@@ -34,7 +35,9 @@ logger = logging.getLogger(__name__)
 # pylint: disable=missing-function-docstring,duplicate-code,protected-access
 
 
-async def call(request: Request, context: Any, method: Method) -> Result:
+async def call(
+    request: Request, context: Any, method: Method, debug: bool = False
+) -> Result:
     try:
         result = await method(
             *extract_args(request, context), **extract_kwargs(request)
@@ -42,15 +45,15 @@ async def call(request: Request, context: Any, method: Method) -> Result:
         validate_result(result)
     except JsonRpcError as exc:
         return Left(ErrorResult(code=exc.code, message=exc.message, data=exc.data))
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:
         # Other error inside method - Internal error
-        logger.exception(exc)
-        return Left(InternalErrorResult(str(exc)))
+        logger.exception("Method %r raised an exception", request.method)
+        return Left(InternalErrorResult(exception_data(exc, debug)))
     return result
 
 
 async def dispatch_request(
-    methods: Methods, context: Any, request: Request
+    methods: Methods, context: Any, request: Request, debug: bool = False
 ) -> Tuple[Request, Result]:
     method = get_method(methods, request.method).bind(
         partial(validate_args, request, context)
@@ -59,11 +62,7 @@ async def dispatch_request(
         request,
         method
         if isinstance(method, Left)
-        else await call(
-            request,
-            context,
-            method._value,  # pylint: disable=protected-access
-        ),
+        else await call(request, context, method._value, debug=debug),
     )
 
 
@@ -72,10 +71,11 @@ async def dispatch_deserialized(
     context: Any,
     post_process: Callable[[Response], Iterable[Any]],
     deserialized: Deserialized,
+    debug: bool = False,
 ) -> Union[Response, Iterable[Response], None]:
     results = await asyncio.gather(
         *(
-            dispatch_request(methods, context, r)
+            dispatch_request(methods, context, r, debug=debug)
             for r in map(create_request, make_list(deserialized))
         )
     )
@@ -93,6 +93,7 @@ async def dispatch_single(
     methods: Methods,
     context: Any,
     deserialized: Deserialized,
+    debug: bool = False,
 ) -> Union[Response, None]:
     """Validate and dispatch one member of a batch."""
     result = (
@@ -103,7 +104,9 @@ async def dispatch_single(
     return (
         result
         if isinstance(result, Left)
-        else await dispatch_deserialized(methods, context, identity, result._value)
+        else await dispatch_deserialized(
+            methods, context, identity, result._value, debug=debug
+        )
     )
 
 
@@ -115,6 +118,7 @@ async def dispatch_to_response_pure(
     context: Any,
     post_process: Callable[[Response], Iterable[Any]],
     request: str,
+    debug: bool = False,
 ) -> Union[Response, Iterable[Response], None]:
     try:
         result = deserialize_request(deserializer, request)
@@ -125,7 +129,7 @@ async def dispatch_to_response_pure(
         ):
             responses = await asyncio.gather(
                 *(
-                    dispatch_single(validator, methods, context, member)
+                    dispatch_single(validator, methods, context, member, debug=debug)
                     for member in result._value
                 )
             )
@@ -141,12 +145,9 @@ async def dispatch_to_response_pure(
             post_process(result)
             if isinstance(result, Left)
             else await dispatch_deserialized(
-                methods,
-                context,
-                post_process,
-                result._value,  # pylint: disable=protected-access
+                methods, context, post_process, result._value, debug=debug
             )
         )
-    except Exception as exc:  # pylint: disable=broad-except
-        logger.exception(exc)
-        return post_process(Left(ServerErrorResponse(str(exc), None)))
+    except Exception as exc:
+        logger.exception("Error while dispatching the request")
+        return post_process(Left(ServerErrorResponse(exception_data(exc, debug), None)))
