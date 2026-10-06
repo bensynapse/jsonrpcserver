@@ -14,12 +14,14 @@ async def handler(websocket: ServerConnection) -> None:
     async for message in websocket:
         request = message.decode() if isinstance(message, bytes) else message
         # Unlike HTTP, there's no need to answer a notification.
-        if response := await async_dispatch(request):
+        # max_batch_size: see the Security page.
+        if response := await async_dispatch(request, max_batch_size=100):
             await websocket.send(response)
 
 
 async def main() -> None:
-    async with serve(handler, "localhost", 5000) as server:
+    # A bigger message closes the connection. The default is 1 MiB.
+    async with serve(handler, "localhost", 8000, max_size=1_000_000) as server:
         await server.serve_forever()
 
 

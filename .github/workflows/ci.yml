@@ -55,7 +55,9 @@ jobs:
       - name: No links to hijacked domains anywhere in the repo
         run: |
           # The second pattern is the previous author's blog, which now redirects to spam.
-          if git grep -n -I -i -E 'jsonrpc(client|server)\.com|composed\.blog' -- ':!.github/scripts/check_metadata.py'; then
+          # The FAQ names the old domains, as plain text, so readers recognise them.
+          # tests/test_docs.py checks that they're never links there.
+          if git grep -n -I -i -E 'jsonrpc(client|server)\.com|composed\.blog' -- ':!.github/scripts/check_metadata.py' ':!docs/faq.md'; then
             echo "::error::Remove the links above. Those domains no longer belong to the project."
             exit 1
           fi
@@ -89,16 +91,41 @@ jobs:
       - run: mkdocs build --strict
       - name: Examples in the README and docs, with every optional library installed
         run: |
-          for f in README.md docs/*.md; do
+          for f in README.md $(find docs -name '*.md' | sort); do
             python tests/doc_examples.py "$f"
           done
       - name: Start each example server and send it requests
         run: python docs/examples/check_examples.py
 
+  site:
+    # The built docs in a browser: accessibility (axe-core), links and anchors,
+    # and pages that scroll sideways. See .github/scripts/check_site.py.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -r requirements/docs.txt -r requirements/site.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: mkdocs build --strict
+      - name: Download axe-core and check its hash
+        env:
+          AXE_VERSION: "4.14.0"
+          AXE_SHA512: "9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ=="
+        run: |
+          curl -sSfL -o axe.tgz "https://registry.npmjs.org/axe-core/-/axe-core-$AXE_VERSION.tgz"
+          echo "$AXE_SHA512" | base64 -d > expected.bin
+          openssl dgst -sha512 -binary axe.tgz | cmp - expected.bin
+          tar -xzf axe.tgz package/axe.min.js
+      - run: python .github/scripts/check_site.py site package/axe.min.js
+
   ci-ok:
     name: CI OK
     if: always()
-    needs: [test, lint, package, docs]
+    needs: [test, lint, package, docs, site]
     runs-on: ubuntu-24.04
     steps:
       - name: All jobs passed
