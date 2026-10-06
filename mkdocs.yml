@@ -1,0 +1,51 @@
+site_name: jsonrpcserver
+site_description: Process incoming JSON-RPC requests in Python
+site_url: https://bensynapse.github.io/jsonrpcserver/
+repo_url: https://github.com/bensynapse/jsonrpcserver
+repo_name: bensynapse/jsonrpcserver
+edit_uri: edit/main/docs/
+theme:
+  name: material
+  logo: assets/logo.png
+  features:
+    - navigation.footer
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme)"
+      scheme: default
+      primary: "pink"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: "pink"
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: "pink"
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+plugins:
+  - search
+extra_css:
+  - assets/extra.css
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      check_paths: true
+nav:
+  - Home: index.md
+  - Methods: methods.md
+  - Dispatch: dispatch.md
+  - Async: async.md
+  - Examples: examples.md
+  - Security: security.md
+  - FAQ: faq.md
+  - Roadmap: roadmap.md
+  - Changelog: https://github.com/bensynapse/jsonrpcserver/blob/main/CHANGELOG.md

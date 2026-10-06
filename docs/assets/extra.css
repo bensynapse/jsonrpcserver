@@ -1,0 +1,106 @@
+:root {
+  /* ✅ Fonts */
+  --md-text-font: -apple-system, BlinkMacSystemFont, "Segoe UI Adjusted",
+    "Segoe UI", "Liberation Sans", sans-serif;
+  --md-code-font: "SF Mono", SFMono-Regular, ui-monospace, "DejaVu Sans Mono",
+    Menlo, Consolas, monospace;
+
+  /* ✅ Light Mode Text Colors */
+  --md-default-fg-color: #111;
+}
+
+[data-md-color-scheme="slate"] {
+  /* ✅ Dark Mode Text Colors */
+  --md-default-fg-color: #e9e9e9;
+}
+
+/* Fix a horizontal scroll isue */
+.md-typeset * {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.md-typeset {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    padding: 0;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  /* Change header fonts */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    font-style: normal;
+    letter-spacing: -0.5px;
+    line-height: 140%;
+  }
+
+  h1 {
+    color: var(--md-default-fg-color);
+    font-size: 1.2rem;
+    margin-bottom: 1em;
+  }
+
+  h2 {
+    font-size: 1rem;
+  }
+
+  h3 {
+    font-size: 0.9rem;
+  }
+
+  p, ul, ol, pre {
+    font-size: 17px;
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+
+  ul, ol {
+    margin-left: 3rem;
+    padding-left: 3rem;
+  }
+
+  blockquote {
+    border-left: 0 !important;
+    border-radius: 0;
+    margin: 0;
+    margin-bottom: 1em;
+    padding: 1px;
+    background-color: rgba(255, 87, 34, 0.05);
+
+    [data-md-color-scheme="slate"] {
+      background-color: rgba(255, 204, 0, 0.1);
+    }
+  }
+
+  pre {
+    line-height: 150%;
+  }
+  pre > code {
+    padding-left: 20px;
+  }
+}
+
+.md-content__inner {
+  /* Target only the page title (first H1 in the article) */
+  .md-typeset {
+    h1:first-of-type {
+      padding-left: 20px;
+    }
+  }
+}
+
+article {
+  padding-bottom: 3rem;
+}
+

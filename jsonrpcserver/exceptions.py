@@ -9,7 +9,7 @@ from .utils import warn_if_invalid_error
 class JsonRpcError(Exception):
     """A JsonRpcError exception can be raised from inside a method, as an alternate way
     to return an error response. See
-    https://github.com/explodinglabs/jsonrpcserver/discussions/158
+    https://bensynapse.github.io/jsonrpcserver/methods/#results
     """
 
     def __init__(self, code: int, message: str, data: Any = NODATA):

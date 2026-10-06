@@ -1,0 +1,14 @@
+# The libraries the docs examples use. CI runs the examples on Python 3.13.
+aiohttp==3.14.4
+django==6.1.1
+fastapi==0.142.2
+flask==3.1.3
+flask-socketio==5.6.1
+python-socketio[client]==5.17.0
+pyzmq==27.2.0
+sanic==25.12.1
+tornado==6.5.10
+ujson==6.0.0
+uvicorn==0.54.0
+websockets==17.2
+werkzeug==3.1.9
