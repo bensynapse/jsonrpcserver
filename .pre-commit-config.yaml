@@ -1,50 +1,15 @@
-default_language_version:
-  python: python3.8
-exclude: (^docs)
-fail_fast: true
 repos:
-  - repo: https://github.com/ambv/black
-    rev: 22.8.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
     hooks:
-      - id: black
-        args: [--diff, --check]
-
-  - repo: https://github.com/PyCQA/pylint
-    rev: v2.15.3
-    hooks:
-      - id: pylint
-        additional_dependencies:
-          - oslash<1
-          - aiohttp<4
-          - aiozmq<1
-          - django<5
-          - fastapi<1
-          - flask<3
-          - flask-socketio<5.3.1
-          - jsonschema<5
-          - pytest
-          - pyzmq
-          - sanic
-          - tornado<7
-          - uvicorn<1
-          - websockets<11
+      - id: ruff-check
+      - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.1
+    rev: v2.4.0
     hooks:
       - id: mypy
         args: [--strict]
+        files: ^jsonrpcserver/
         additional_dependencies:
-          - aiohttp<4
-          - aiozmq<1
-          - django<5
-          - fastapi<1
-          - flask<3
-          - flask-socketio<5.3.1
-          - pytest
-          - pyzmq
-          - sanic
-          - tornado<7
-          - types-setuptools
-          - uvicorn<1
-          - websockets<11
+          - types-jsonschema

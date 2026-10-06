@@ -1,4 +1,5 @@
 """Test main.py"""
+
 from oslash.either import Right  # type: ignore
 
 from jsonrpcserver.main import (

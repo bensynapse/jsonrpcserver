@@ -38,12 +38,6 @@
 
 A complete rebuild, with a few important usage changes.
 
-See a post explaining the changes at
-[https://composed.blog/jsonrpcserver-5-changes](https://composed.blog/jsonrpcserver-5-changes).
-
-Read the full version 5 documentation at
-[jsonrpcserver.com](https://www.jsonrpcserver.com/).
-
 - Methods must now return a Result (Success or Error).
 - The dispatch function now returns a string.
 - Methods collection is now a simple dict, the Methods class has been removed.

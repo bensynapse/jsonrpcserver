@@ -1,4 +1,5 @@
 """Async version of main.py. The public async functions."""
+
 import json
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union, cast
 
@@ -19,7 +20,7 @@ async def dispatch_to_response(
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = default_deserializer,
-    validator: Callable[[Deserialized], Deserialized] = default_validator,
+    validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
 ) -> Union[Response, Iterable[Response], None]:
     return await dispatch_to_response_pure(

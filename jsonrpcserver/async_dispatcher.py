@@ -1,4 +1,5 @@
 """Async version of dispatcher.py"""
+
 import asyncio
 import logging
 from functools import partial
@@ -59,7 +60,9 @@ async def dispatch_request(
         method
         if isinstance(method, Left)
         else await call(
-            request, context, method._value  # pylint: disable=protected-access
+            request,
+            context,
+            method._value,  # pylint: disable=protected-access
         ),
     )
 
@@ -86,7 +89,7 @@ async def dispatch_deserialized(
 
 
 async def dispatch_single(
-    validator: Callable[[Deserialized], Deserialized],
+    validator: Callable[[Deserialized], object],
     methods: Methods,
     context: Any,
     deserialized: Deserialized,
@@ -107,7 +110,7 @@ async def dispatch_single(
 async def dispatch_to_response_pure(
     *,
     deserializer: Callable[[str], Deserialized],
-    validator: Callable[[Deserialized], Deserialized],
+    validator: Callable[[Deserialized], object],
     methods: Methods,
     context: Any,
     post_process: Callable[[Response], Iterable[Any]],

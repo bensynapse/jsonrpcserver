@@ -94,7 +94,7 @@ def extract_args(request: Request, context: Any) -> List[Any]:
     Returns: A list containing the positional arguments.
     """
     params = request.params if isinstance(request.params, list) else []
-    return [context] + params if context is not NOCONTEXT else params
+    return [context, *params] if context is not NOCONTEXT else params
 
 
 def extract_kwargs(request: Request) -> Dict[str, Any]:
@@ -220,7 +220,7 @@ def dispatch_deserialized(
 
 
 def validate_request(
-    validator: Callable[[Deserialized], Deserialized], request: Deserialized
+    validator: Callable[[Deserialized], object], request: Deserialized
 ) -> Either[ErrorResponse, Deserialized]:
     """Validate the request against a JSON-RPC schema.
 
@@ -255,7 +255,7 @@ def deserialize_request(
 
 
 def dispatch_single(
-    validator: Callable[[Deserialized], Deserialized],
+    validator: Callable[[Deserialized], object],
     methods: Methods,
     context: Any,
     deserialized: Deserialized,
@@ -276,7 +276,7 @@ def dispatch_single(
 def dispatch_to_response_pure(
     *,
     deserializer: Callable[[str], Deserialized],
-    validator: Callable[[Deserialized], Deserialized],
+    validator: Callable[[Deserialized], object],
     methods: Methods,
     context: Any,
     post_process: Callable[[Response], Iterable[Any]],

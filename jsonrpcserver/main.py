@@ -9,11 +9,12 @@ request, but they each give a different return value.
 - dispatch_to_json/dispatch: Returns a JSON-RPC response string (or an empty string for
   notifications).
 """
+
 import json
 from importlib.resources import read_text
 from typing import Any, Callable, Dict, List, Optional, Union, cast
 
-from jsonschema.validators import validator_for  # type: ignore
+from jsonschema.validators import validator_for
 
 from .dispatcher import Deserialized, dispatch_to_response_pure
 from .methods import Methods, global_methods
@@ -37,7 +38,7 @@ def dispatch_to_response(
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = json.loads,
-    validator: Callable[[Deserialized], Deserialized] = default_validator,
+    validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
 ) -> Union[Response, List[Response], None]:
     """Takes a JSON-RPC request string and dispatches it to method(s), giving Response

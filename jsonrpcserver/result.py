@@ -6,6 +6,7 @@ parts - the library takes care of these parts for you.
 
 The public functions are Success, Error and InvalidParams.
 """
+
 from typing import Any, NamedTuple
 
 from oslash.either import Either, Left, Right  # type: ignore
@@ -29,7 +30,10 @@ class ErrorResult(NamedTuple):
     data: Any = NODATA  # The spec says this value may be omitted
 
     def __repr__(self) -> str:
-        return f"ErrorResult(code={self.code!r}, message={self.message!r}, data={self.data!r})"
+        return (
+            f"ErrorResult(code={self.code!r}, message={self.message!r}, "
+            f"data={self.data!r})"
+        )
 
 
 # Union of the two valid result types

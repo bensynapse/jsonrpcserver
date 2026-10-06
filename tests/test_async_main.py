@@ -1,4 +1,5 @@
 """Test async_main.py"""
+
 import pytest
 from oslash.either import Right  # type: ignore
 
