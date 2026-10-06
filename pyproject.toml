@@ -39,5 +39,7 @@ branch = true
 source = ["jsonrpcserver"]
 
 [tool.coverage.report]
+# Python 3.8 counts the "..." body of an overload as a branch.
+exclude_also = ["@overload"]
 fail_under = 100
 show_missing = true
