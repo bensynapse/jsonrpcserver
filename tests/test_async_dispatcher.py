@@ -95,6 +95,24 @@ async def test_call_raising_exception_is_logged(
 
 
 @pytest.mark.asyncio
+async def test_plain_return_value_is_logged_with_a_hint(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def method() -> str:
+        return "pong"
+
+    assert await call(Request("ping", [], 1), NOCONTEXT, method) == Left(
+        ErrorResult(ERROR_INTERNAL_ERROR, "Internal error")
+    )
+    (record,) = caplog.records
+    assert record.name == "jsonrpcserver.async_dispatcher"
+    assert record.exc_info is None
+    assert record.getMessage().startswith(
+        "Method 'ping' returned 'pong', which is not a Result"
+    )
+
+
+@pytest.mark.asyncio
 async def test_dispatch_request() -> None:
     request = Request("ping", [], 1)
     assert await dispatch_request({"ping": ping}, NOCONTEXT, request) == (

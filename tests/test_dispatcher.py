@@ -529,9 +529,39 @@ def test_dispatch_to_response_pure_invalid_result() -> None:
         ErrorResponse(
             ERROR_INTERNAL_ERROR,
             "Internal error",
-            "The method did not return a valid Result (returned None)",
+            "The method did not return a valid Result (returned None). "
+            "Return Success(value) or Error(code, message).",
             1,
         )
+    )
+
+
+def test_plain_return_value_is_logged_with_a_hint(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A 4.x-style method that returns a plain value gets a log line saying what to do,
+    not a traceback into jsonrpcserver."""
+
+    def ping() -> str:
+        return "pong"
+
+    response = dispatch_to_response_pure(
+        deserializer=default_deserializer,
+        validator=default_validator,
+        post_process=identity,
+        context=NOCONTEXT,
+        methods={"ping": ping},
+        request='{"jsonrpc": "2.0", "method": "ping", "id": 1}',
+    )
+    assert response == Left(
+        ErrorResponse(ERROR_INTERNAL_ERROR, "Internal error", NODATA, 1)
+    )
+    (record,) = caplog.records
+    assert record.levelname == "ERROR"
+    assert record.exc_info is None
+    assert record.getMessage().startswith(
+        "Method 'ping' returned 'pong', which is not a Result, so the client got an "
+        "Internal error. Return Success(value) or Error(code, message)."
     )
 
 

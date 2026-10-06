@@ -1,6 +1,7 @@
-"""The response data types.
+"""Responses: what dispatch_to_response gives, and how to turn them into dicts.
 
-https://www.jsonrpc.org/specification#response_object
+A Response is a Result plus the request's id
+(https://www.jsonrpc.org/specification#response_object).
 """
 
 import warnings
@@ -20,17 +21,17 @@ Deserialized = Union[Dict[str, Any], List[Dict[str, Any]]]
 
 
 class SuccessResponse(NamedTuple):
-    """It would be nice to subclass Success here, adding only id. But it's not possible
-    to easily subclass NamedTuples in Python 3.6. (I believe it can be done in 3.8.)
-    """
+    """A successful response: the method's result and the request's id."""
 
     result: Any
     id: Any
 
 
 class ErrorResponse(NamedTuple):
-    """It would be nice to subclass Error here, adding only id. But it's not possible to
-    easily subclass NamedTuples in Python 3.6. (I believe it can be done in 3.8.)
+    """An error response: the error's code, message and data, and the request's id.
+
+    `data` is `NODATA` when there's no data, so it's left out of the response. `id`
+    is None when the request couldn't be read, as the spec requires.
     """
 
     code: int
@@ -41,8 +42,16 @@ class ErrorResponse(NamedTuple):
 
 # oslash's Either takes the success type first, then the error type.
 Response = Either[SuccessResponse, ErrorResponse]
-# Kept for backward compatibility. Use Response.
+"""What `dispatch_to_response` gives for each request.
+
+An oslash `Either`: a `Right` holding a `SuccessResponse`, or a `Left` holding an
+`ErrorResponse`. To read one, check `isinstance(response, Left)`, then read
+`response._error` (an `ErrorResponse`) or `response._value` (a `SuccessResponse`).
+oslash has no public accessor, but these attributes are stable for all of 5.x. Or turn
+it into a dict with `to_dict`.
+"""
 ResponseType = Type[Response]
+"""Deprecated: use `Response`. Kept so code written for 5.0.9 keeps working."""
 
 
 def ParseErrorResponse(data: Any) -> ErrorResponse:  # pylint: disable=invalid-name
@@ -78,7 +87,7 @@ def ServerErrorResponse(data: Any, id: Any) -> ErrorResponse:
 
 
 def to_error_dict(response: ErrorResponse) -> Dict[str, Any]:
-    """From ErrorResponse object to dict"""
+    """Turn an ErrorResponse into a JSON-RPC response dict, leaving out missing data."""
     return {
         "jsonrpc": "2.0",
         "error": {
@@ -92,12 +101,27 @@ def to_error_dict(response: ErrorResponse) -> Dict[str, Any]:
 
 
 def to_success_dict(response: SuccessResponse) -> Dict[str, Any]:
-    """From SuccessResponse object to dict"""
+    """Turn a SuccessResponse into a JSON-RPC response dict."""
     return {"jsonrpc": "2.0", "result": response.result, "id": response.id}
 
 
 def to_dict(response: Response) -> Dict[str, Any]:
-    """Serialize either an error or success response object to dict"""
+    """Turn a Response into a JSON-RPC response dict.
+
+    Args:
+        response: A Response from `dispatch_to_response`.
+
+    Returns:
+        The response as a dict, ready for `json.dumps`.
+
+    Example:
+        >>> from jsonrpcserver import Result, Success, dispatch_to_response
+        >>> def ping() -> Result:
+        ...     return Success("pong")
+        >>> request = '{"jsonrpc": "2.0", "method": "ping", "id": 1}'
+        >>> to_dict(dispatch_to_response(request, {"ping": ping}))
+        {'jsonrpc': '2.0', 'result': 'pong', 'id': 1}
+    """
     if isinstance(response, Left):
         return to_error_dict(response._error)
     success = cast("Right[SuccessResponse, ErrorResponse]", response)
@@ -107,7 +131,7 @@ def to_dict(response: Response) -> Dict[str, Any]:
 def to_serializable(
     response: Union[Response, List[Response], None],
 ) -> Union[Deserialized, None]:
-    """Serialize a response object (or list of them), to a dict, or list of them."""
+    """Turn a Response, a list of them or None into a dict, a list of dicts or None."""
     if response is None:
         return None
     if isinstance(response, List):
@@ -129,18 +153,18 @@ def _deprecated(old: str, new: str) -> None:
 
 
 def serialize_error(response: ErrorResponse) -> Dict[str, Any]:
-    """Deprecated. Use to_error_dict."""
+    """Deprecated: use `to_error_dict`. Warns with DeprecationWarning (5.0.10)."""
     _deprecated("serialize_error", "to_error_dict")
     return to_error_dict(response)
 
 
 def serialize_success(response: SuccessResponse) -> Dict[str, Any]:
-    """Deprecated. Use to_success_dict."""
+    """Deprecated: use `to_success_dict`. Warns with DeprecationWarning (5.0.10)."""
     _deprecated("serialize_success", "to_success_dict")
     return to_success_dict(response)
 
 
 def to_serializable_one(response: Response) -> Dict[str, Any]:
-    """Deprecated. Use to_dict."""
+    """Deprecated: use `to_dict`. Warns with DeprecationWarning (5.0.10)."""
     _deprecated("to_serializable_one", "to_dict")
     return to_dict(response)

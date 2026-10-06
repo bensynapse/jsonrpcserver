@@ -1,5 +1,4 @@
-"""A simple development server for serving JSON-RPC requests using Python's builtin
-http.server module.
+"""A development server for trying out methods, built on Python's http.server.
 
 It's meant for trying things out. For production, put dispatch behind a real web
 server or framework.
@@ -7,6 +6,7 @@ server or framework.
 
 import json
 import logging
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
@@ -60,11 +60,56 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
 
+def listening_message(name: str, port: int) -> str:
+    """The line serve() shows when it starts."""
+    if name in ("", "0.0.0.0"):
+        return (
+            f" * Listening on port {port} on every network interface. This is a "
+            'development server. Use serve("localhost", ...) to accept only local '
+            "connections."
+        )
+    return f" * Listening on http://{name}:{port}/. This is a development server."
+
+
 def serve(name: str = "", port: int = 5000) -> None:
-    """A simple function to serve HTTP requests. For development only."""
-    logger.info(" * Listening on port %s", port)
+    """Serve the methods registered with `@method` over HTTP. For development only.
+
+    It answers POST requests on any path with `dispatch`, sends 204 No Content for a
+    notification, and runs each request in its own thread. It runs until the process
+    is stopped, for example with Ctrl+C.
+
+    When it starts, it logs where it's listening on the `jsonrpcserver.server`
+    logger. If logging isn't configured, it writes that line to stderr instead
+    (new in 5.0.10). Each request is logged at INFO level.
+
+    It has no TLS, no authentication and no request size limit, and it doesn't pass
+    `max_batch_size`. Put `dispatch` behind a real web server or framework in
+    production.
+
+    Args:
+        name: The host name or address to listen on. The default, "", listens on
+            every network interface, so other machines can connect. Pass "localhost"
+            to accept only local connections.
+        port: The port to listen on.
+
+    Example:
+        ```python
+        from jsonrpcserver import Result, Success, method, serve
+
+        @method
+        def ping() -> Result:
+            return Success("pong")
+
+        serve("localhost", 8000)
+        ```
+    """
     httpd = ThreadingHTTPServer((name, port), RequestHandler)
     try:
+        message = listening_message(name, port)
+        logger.info("%s", message)
+        if not logger.hasHandlers() and sys.stderr is not None:
+            # logging isn't configured, so the line above went nowhere.
+            print(message, file=sys.stderr, flush=True)
         httpd.serve_forever()
     finally:
         httpd.server_close()
