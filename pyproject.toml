@@ -1,3 +1,73 @@
+[build-system]
+requires = ["flit_core>=3.12,<5"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "jsonrpcserver"
+dynamic = ["version"]
+description = "Process incoming JSON-RPC requests in Python"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.8"
+authors = [
+    {name = "Beau Barker", email = "beau@explodinglabs.com"},
+]
+maintainers = [
+    {name = "bensynapse"},
+]
+keywords = ["json-rpc", "jsonrpc", "json-rpc-2.0", "rpc", "server"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Free Threading :: 3 - Stable",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+# The same ranges as 5.0.9, so upgrading never forces a different jsonschema
+# or oslash.
+dependencies = [
+    "jsonschema<5",
+    "oslash<1",
+]
+
+[project.urls]
+Homepage = "https://bensynapse.github.io/jsonrpcserver/"
+Documentation = "https://bensynapse.github.io/jsonrpcserver/"
+Repository = "https://github.com/bensynapse/jsonrpcserver"
+Issues = "https://github.com/bensynapse/jsonrpcserver/issues"
+Changelog = "https://github.com/bensynapse/jsonrpcserver/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = [
+    "hypothesis",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+]
+
+[tool.flit.sdist]
+include = [
+    "CHANGELOG.md",
+    "docs/",
+    "mkdocs.yml",
+    "requirements/",
+    "tests/",
+    "tox.ini",
+]
+
 [tool.ruff]
 target-version = "py38"
 
@@ -37,6 +107,7 @@ reportUnnecessaryTypeIgnoreComment = "error"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 branch = true
