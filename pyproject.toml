@@ -61,6 +61,7 @@ test = [
 [tool.flit.sdist]
 include = [
     "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
     "RELEASING.md",
     "SECURITY.md",
