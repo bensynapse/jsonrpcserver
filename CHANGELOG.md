@@ -84,6 +84,15 @@ error instead. If you depend on the old output, pass `serializer=json.dumps`.
   follow_untyped_imports = true
   ```
 
+### Documentation
+
+The documentation now lives in this repository, under `docs/`, and is
+published at https://bensynapse.github.io/jsonrpcserver/. The framework
+examples moved there from the wiki. CI starts each example server and sends
+it requests, and runs every code example in the docs. The websockets example
+uses the current `websockets.asyncio` API (#287). A new Security page covers
+the settings to check before exposing a server.
+
 ### Deprecations
 
 Three functions in `jsonrpcserver.response` have new names. The old names still

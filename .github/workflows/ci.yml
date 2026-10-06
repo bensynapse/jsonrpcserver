@@ -74,10 +74,29 @@ jobs:
       - name: Metadata must not link to hijacked domains
         run: python .github/scripts/check_metadata.py dist/*
 
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e . -r requirements/docs.txt -r requirements/examples.txt
+      - run: mkdocs build --strict
+      - name: Examples in the README and docs, with every optional library installed
+        run: |
+          for f in README.md docs/*.md; do
+            python tests/doc_examples.py "$f"
+          done
+      - name: Start each example server and send it requests
+        run: python docs/examples/check_examples.py
+
   ci-ok:
     name: CI OK
     if: always()
-    needs: [test, lint, package]
+    needs: [test, lint, package, docs]
     runs-on: ubuntu-24.04
     steps:
       - name: All jobs passed

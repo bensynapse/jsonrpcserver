@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="https://img.shields.io/pypi/v/jsonrpcserver.svg" alt="PyPI" />
-  <img src="https://github.com/explodinglabs/jsonrpcserver/actions/workflows/code-quality.yml/badge.svg" alt="Code Quality" />
-  <img src="https://coveralls.io/repos/github/explodinglabs/jsonrpcserver/badge.svg?branch=main" alt="Coverage Status" />
+  <a href="https://pypi.org/project/jsonrpcserver/"><img src="https://img.shields.io/pypi/v/jsonrpcserver.svg" alt="PyPI" /></a>
+  <a href="https://github.com/bensynapse/jsonrpcserver/actions/workflows/ci.yml"><img src="https://github.com/bensynapse/jsonrpcserver/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/pypi/pyversions/jsonrpcserver" alt="Python versions" />
   <img src="https://img.shields.io/pypi/dw/jsonrpcserver" alt="Downloads" />
-  <img src="https://img.shields.io/pypi/l/jsonrpcserver.svg" alt="License" />
+  <img src="https://img.shields.io/github/license/bensynapse/jsonrpcserver" alt="License" />
 </p>
 
 <p align="center">
-  <img alt="Jsonrpcserver Logo" src="https://github.com/explodinglabs/jsonrpcserver/blob/main/logo.png?raw=true" />
+  <img alt="Jsonrpcserver Logo" src="https://raw.githubusercontent.com/bensynapse/jsonrpcserver/main/logo.png" />
 </p>
 
 <p align="center">
@@ -15,39 +15,49 @@
 </p>
 
 <p align="center">
-  <a href="https://explodinglabs.com/jsonrpcserver/">Documentation</a> |
-  <a href="https://github.com/explodinglabs/jsonrpcserver/wiki">Developer Wiki</a>
+  <a href="https://bensynapse.github.io/jsonrpcserver/">Documentation</a> |
+  <a href="https://bensynapse.github.io/jsonrpcserver/examples/">Examples</a> |
+  <a href="https://github.com/bensynapse/jsonrpcserver/blob/main/CHANGELOG.md">Changelog</a>
 </p>
 
 https://github.com/user-attachments/assets/94fb4f04-a5f1-41ca-84dd-7e18b87990e0
 
-## 🚀 Installation
+## Installation
 
 ```sh
 pip install jsonrpcserver
 ```
 
-## ⚒️ Usage
+It supports Python 3.8 and later.
+
+## Usage
 
 ```python
-from jsonrpcserver import dispatch, method, Success
+from jsonrpcserver import Result, Success, dispatch, method
 
 
 @method
-def ping():
+def ping() -> Result:
     return Success("pong")
-
-
-response = dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}')
-# => '{"jsonrpc": "2.0", "result": "pong", "id": 1}'
 ```
 
-## 📚 Documentation
+```python
+>>> dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}')
+'{"jsonrpc": "2.0", "result": "pong", "id": 1}'
+```
 
-👉 Full documentation is at [explodinglabs.com/jsonrpcserver/](https://explodinglabs.com/jsonrpcserver/).
+jsonrpcserver doesn't listen on a port itself. The
+[examples](https://bensynapse.github.io/jsonrpcserver/examples/) show it with
+Flask, FastAPI, Django, aiohttp, websockets, ZeroMQ and more.
 
-👉 See the [Wiki](https://github.com/explodinglabs/jsonrpcserver/wiki) for community-editable usage examples in various frameworks, libraries, and transport protocols.
+Before you expose a server to the internet, read the
+[security notes](https://bensynapse.github.io/jsonrpcserver/security/).
 
-## ➡️ See Also
+## Documentation
 
-- [jsonrpcclient](https://github.com/explodinglabs/jsonrpcclient) – Create JSON-RPC requests and parse responses in Python
+Full documentation is at
+[bensynapse.github.io/jsonrpcserver](https://bensynapse.github.io/jsonrpcserver/).
+
+## See also
+
+- [jsonrpcclient](https://github.com/bensynapse/jsonrpcclient): create JSON-RPC requests and parse responses in Python
