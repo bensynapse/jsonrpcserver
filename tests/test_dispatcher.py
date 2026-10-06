@@ -214,12 +214,35 @@ def test_call_raising_jsonrpcerror() -> None:
 
 
 def test_call_raising_exception() -> None:
+    """The exception message must not reach the client by default."""
+
     def method_() -> None:
         raise ValueError("foo")
 
     assert call(Request("ping", [], 1), NOCONTEXT, method_) == Left(
+        ErrorResult(ERROR_INTERNAL_ERROR, "Internal error", NODATA)
+    )
+
+
+def test_call_raising_exception_debug() -> None:
+    def method_() -> None:
+        raise ValueError("foo")
+
+    assert call(Request("ping", [], 1), NOCONTEXT, method_, debug=True) == Left(
         ErrorResult(ERROR_INTERNAL_ERROR, "Internal error", "foo")
     )
+
+
+def test_call_raising_exception_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    def method_() -> None:
+        raise ValueError("secret detail")
+
+    call(Request("ping", [], 1), NOCONTEXT, method_)
+    (record,) = caplog.records
+    assert record.name == "jsonrpcserver.dispatcher"
+    assert record.getMessage() == "Method 'ping' raised an exception"
+    assert record.exc_info is not None
+    assert str(record.exc_info[1]) == "secret detail"
 
 
 # validate_args
@@ -448,7 +471,8 @@ def test_dispatch_to_response_pure_invalid_params_explicitly_returned() -> None:
     ) == Left(ErrorResponse(ERROR_INVALID_PARAMS, "Invalid params", NODATA, 1))
 
 
-def test_dispatch_to_response_pure_internal_error() -> None:
+@pytest.mark.parametrize("debug,data", [(False, NODATA), (True, "foo")])
+def test_dispatch_to_response_pure_internal_error(debug: bool, data: Any) -> None:
     def foo() -> Result:
         raise ValueError("foo")
 
@@ -459,11 +483,15 @@ def test_dispatch_to_response_pure_internal_error() -> None:
         context=NOCONTEXT,
         methods={"foo": foo},
         request='{"jsonrpc": "2.0", "method": "foo", "id": 1}',
-    ) == Left(ErrorResponse(ERROR_INTERNAL_ERROR, "Internal error", "foo", 1))
+        debug=debug,
+    ) == Left(ErrorResponse(ERROR_INTERNAL_ERROR, "Internal error", data, 1))
 
 
+@pytest.mark.parametrize("debug,data", [(False, NODATA), (True, "foo")])
 @patch("jsonrpcserver.dispatcher.dispatch_request", side_effect=ValueError("foo"))
-def test_dispatch_to_response_pure_server_error(*_: Mock) -> None:
+def test_dispatch_to_response_pure_server_error(
+    _: Mock, debug: bool, data: Any
+) -> None:
     def foo() -> Result:
         return Success()
 
@@ -474,7 +502,8 @@ def test_dispatch_to_response_pure_server_error(*_: Mock) -> None:
         context=NOCONTEXT,
         methods={"foo": foo},
         request='{"jsonrpc": "2.0", "method": "foo", "id": 1}',
-    ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", "foo", None))
+        debug=debug,
+    ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", data, None))
 
 
 def test_dispatch_to_response_pure_invalid_result() -> None:
@@ -490,6 +519,7 @@ def test_dispatch_to_response_pure_invalid_result() -> None:
         context=NOCONTEXT,
         methods={"not_a_result": not_a_result},
         request='{"jsonrpc": "2.0", "method": "not_a_result", "id": 1}',
+        debug=True,
     ) == Left(
         ErrorResponse(
             ERROR_INTERNAL_ERROR,
@@ -652,7 +682,7 @@ def test_dispatch_to_response_pure_notification_server_error(*_: Mock) -> None:
         context=NOCONTEXT,
         methods={"foo": foo},
         request='{"jsonrpc": "2.0", "method": "foo"}',
-    ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", "foo", None))
+    ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", NODATA, None))
 
 
 def test_dispatch_to_response_pure_notification_invalid_result() -> None:

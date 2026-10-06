@@ -40,6 +40,7 @@ def dispatch_to_response(
     deserializer: Callable[[str], Deserialized] = json.loads,
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
+    debug: bool = False,
 ) -> Union[Response, List[Response], None]:
     """Takes a JSON-RPC request string and dispatches it to method(s), giving Response
     namedtuple(s) or None.
@@ -59,6 +60,11 @@ def dispatch_to_response(
             individually, with nested arrays rejected before calling the validator.
             To disable validation, pass lambda _: None.
         post_process: Function that will be applied to Responses.
+        debug: If True, the error response for an uncaught exception in a method
+            includes the exception message in "data". The default leaves "data" out,
+            because exception messages can contain passwords, file paths and other
+            details a client shouldn't see. Only turn this on in development. The
+            exception is logged either way.
 
     Returns:
         A Response, list of Responses or None.
@@ -74,6 +80,7 @@ def dispatch_to_response(
         context=context,
         methods=global_methods if methods is None else methods,
         request=request,
+        debug=debug,
     )
 
 

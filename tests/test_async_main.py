@@ -1,5 +1,7 @@
 """Test async_main.py"""
 
+import json
+
 import pytest
 from oslash.either import Right  # type: ignore
 
@@ -48,3 +50,52 @@ async def test_dispatch_to_json_notification() -> None:
         await dispatch_to_json('{"jsonrpc": "2.0", "method": "ping"}', {"ping": ping})
         == ""
     )
+
+
+SECRET = "could not connect: postgresql://admin:hunter2@db.internal/prod"
+
+
+async def leak() -> Result:
+    raise RuntimeError(SECRET)
+
+
+@pytest.mark.asyncio
+async def test_dispatch_hides_exception_message() -> None:
+    response = await dispatch_to_json(
+        '{"jsonrpc": "2.0", "method": "leak", "id": 1}', {"leak": leak}
+    )
+    assert json.loads(response) == {
+        "jsonrpc": "2.0",
+        "error": {"code": -32603, "message": "Internal error"},
+        "id": 1,
+    }
+    assert "hunter2" not in response
+
+
+@pytest.mark.asyncio
+async def test_dispatch_debug_shows_exception_message() -> None:
+    response = await dispatch_to_json(
+        '{"jsonrpc": "2.0", "method": "leak", "id": 1}', {"leak": leak}, debug=True
+    )
+    assert json.loads(response) == {
+        "jsonrpc": "2.0",
+        "error": {"code": -32603, "message": "Internal error", "data": SECRET},
+        "id": 1,
+    }
+
+
+@pytest.mark.asyncio
+async def test_dispatch_batch_hides_exception_message() -> None:
+    response = await dispatch_to_json(
+        '[{"jsonrpc": "2.0", "method": "leak", "id": 1},'
+        ' {"jsonrpc": "2.0", "method": "ping", "id": 2}]',
+        {"leak": leak, "ping": ping},
+    )
+    assert json.loads(response) == [
+        {
+            "jsonrpc": "2.0",
+            "error": {"code": -32603, "message": "Internal error"},
+            "id": 1,
+        },
+        {"jsonrpc": "2.0", "result": "pong", "id": 2},
+    ]
