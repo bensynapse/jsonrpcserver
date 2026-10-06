@@ -491,20 +491,24 @@ def test_dispatch_to_response_pure_internal_error(debug: bool, data: Any) -> Non
 @pytest.mark.parametrize("debug,data", [(False, NODATA), (True, "foo")])
 @patch("jsonrpcserver.dispatcher.dispatch_request", side_effect=ValueError("foo"))
 def test_dispatch_to_response_pure_server_error(
-    _: Mock, debug: bool, data: Any
+    dispatch_request: Mock, debug: bool, data: Any
 ) -> None:
     def foo() -> Result:
         return Success()
 
+    methods = {"foo": foo}
     assert dispatch_to_response_pure(
         deserializer=default_deserializer,
         validator=default_validator,
         post_process=identity,
         context=NOCONTEXT,
-        methods={"foo": foo},
+        methods=methods,
         request='{"jsonrpc": "2.0", "method": "foo", "id": 1}',
         debug=debug,
     ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", data, None))
+    dispatch_request.assert_called_once_with(
+        methods, NOCONTEXT, Request("foo", [], 1), debug=debug
+    )
 
 
 def test_dispatch_to_response_pure_invalid_result() -> None:
@@ -672,18 +676,24 @@ def test_dispatch_to_response_pure_notification_internal_error() -> None:
 
 
 @patch("jsonrpcserver.dispatcher.dispatch_request", side_effect=ValueError("foo"))
-def test_dispatch_to_response_pure_notification_server_error(*_: Mock) -> None:
+def test_dispatch_to_response_pure_notification_server_error(
+    dispatch_request: Mock,
+) -> None:
     def foo() -> Result:
         return Success()
 
+    methods = {"foo": foo}
     assert dispatch_to_response_pure(
         deserializer=default_deserializer,
         validator=default_validator,
         post_process=identity,
         context=NOCONTEXT,
-        methods={"foo": foo},
+        methods=methods,
         request='{"jsonrpc": "2.0", "method": "foo"}',
     ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", NODATA, None))
+    dispatch_request.assert_called_once_with(
+        methods, NOCONTEXT, Request("foo", [], NOID), debug=False
+    )
 
 
 def test_dispatch_to_response_pure_notification_invalid_result() -> None:
