@@ -18,7 +18,12 @@ from typing import Any, Callable, Dict, List, Optional, Union, cast
 from jsonschema.validators import validator_for
 
 from .codes import ERROR_INTERNAL_ERROR
-from .dispatcher import Deserialized, dispatch_to_response_pure, exception_data
+from .dispatcher import (
+    Deserialized,
+    check_max_batch_size,
+    dispatch_to_response_pure,
+    exception_data,
+)
 from .methods import Methods, global_methods
 from .response import Response, to_dict
 from .sentinels import NOCONTEXT, NODATA
@@ -106,6 +111,7 @@ def dispatch_to_response(
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
     debug: bool = False,
+    max_batch_size: Optional[int] = None,
 ) -> Union[Response, List[Response], None]:
     """Takes a JSON-RPC request string and dispatches it to method(s), giving Response
     namedtuple(s) or None.
@@ -130,6 +136,10 @@ def dispatch_to_response(
             because exception messages can contain passwords, file paths and other
             details a client shouldn't see. Only turn this on in development. The
             exception is logged either way.
+        max_batch_size: The most requests a batch may hold. A bigger batch gets a
+            single Invalid request response and none of it is dispatched. The default,
+            None, means no limit. Every member costs validation time, so a server
+            open to the internet should set one, such as 100.
 
     Returns:
         A Response, list of Responses or None.
@@ -138,6 +148,7 @@ def dispatch_to_response(
        >>> dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}')
        '{"jsonrpc": "2.0", "result": "pong", "id": 1}'
     """
+    check_max_batch_size(max_batch_size)
     return dispatch_to_response_pure(
         deserializer=deserializer,
         validator=validator,
@@ -146,6 +157,7 @@ def dispatch_to_response(
         methods=global_methods if methods is None else methods,
         request=request,
         debug=debug,
+        max_batch_size=max_batch_size,
     )
 
 

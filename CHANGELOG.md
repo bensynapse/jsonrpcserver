@@ -28,7 +28,29 @@ it on in production.
 Errors you return on purpose, with `Error`, `InvalidParams` or by raising
 `JsonRpcError`, are not affected. Their `data` is sent as before.
 
+### New
+
+- `max_batch_size` keyword on all the dispatch functions, sync and async. A
+  batch with more requests than this gets a single -32600 "Invalid request"
+  response, and none of its requests are run. The default is no limit, as
+  before. Each request in a batch costs schema validation time. A 5 MB batch
+  of 100,000 pings took about 4 seconds of CPU, so a public server should set
+  a limit. 100 is a sensible starting point.
+
 ### Behaviour changes
+
+Batches that mix valid and invalid requests are now handled per request, as
+the JSON-RPC spec says (#291). `[1, {"jsonrpc": "2.0", "method": "ping", "id":
+1}]` used to get a single "Invalid request" response. Now `1` gets its own
+error and `ping` runs.
+
+As part of that change, a custom `validator` is now called once for each
+request in a batch, with that request's dict. Before, it was called once with
+the whole list. Some validators enforced a rule about the batch as a whole,
+such as a size limit or refusing batches. Those no longer see the list, so the
+rule silently stops working. Use `max_batch_size` for a size limit. Validators
+that check one request at a time, including the default and `lambda _: None`,
+are not affected.
 
 `dispatch` no longer writes `NaN`, `Infinity` or `-Infinity` into a response.
 They aren't valid JSON, and strict parsers (JavaScript's `JSON.parse`, Go,
