@@ -13,6 +13,7 @@ from .dispatcher import (
     NORESPONSE,
     BatchTooLargeResponse,
     Deserialized,
+    InvalidResultError,
     create_request,
     deserialize_request,
     exception_data,
@@ -20,6 +21,7 @@ from .dispatcher import (
     extract_kwargs,
     extract_list,
     get_method,
+    log_invalid_result,
     member_id,
     not_notification,
     to_response,
@@ -52,6 +54,9 @@ async def call(
         validate_result(result)
     except JsonRpcError as exc:
         return Left(ErrorResult(code=exc.code, message=exc.message, data=exc.data))
+    except InvalidResultError as exc:
+        log_invalid_result(request.method, exc, logger)
+        return Left(InternalErrorResult(exception_data(exc, debug)))
     except Exception as exc:
         # Other error inside method - Internal error
         logger.exception("Method %r raised an exception", request.method)

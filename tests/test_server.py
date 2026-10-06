@@ -12,7 +12,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 from jsonrpcserver import Result, Success, method
-from jsonrpcserver.server import RequestHandler, serve
+from jsonrpcserver import server as server_module
+from jsonrpcserver.server import RequestHandler, listening_message, serve
 
 
 @patch("jsonrpcserver.server.ThreadingHTTPServer")
@@ -35,6 +36,54 @@ def test_serve_closes_on_interrupt(server: Mock) -> None:
     with pytest.raises(KeyboardInterrupt):
         serve()
     server.return_value.server_close.assert_called_once_with()
+
+
+def test_listening_message_every_interface() -> None:
+    assert listening_message("", 5000) == (
+        " * Listening on port 5000 on every network interface. This is a development "
+        'server. Use serve("localhost", ...) to accept only local connections.'
+    )
+    assert listening_message("0.0.0.0", 8000).startswith(
+        " * Listening on port 8000 on every network interface."
+    )
+
+
+def test_listening_message_one_host() -> None:
+    assert listening_message("localhost", 8000) == (
+        " * Listening on http://localhost:8000/. This is a development server."
+    )
+
+
+@patch("jsonrpcserver.server.ThreadingHTTPServer")
+def test_serve_logs_where_it_listens(
+    server: Mock, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with caplog.at_level(logging.INFO, logger="jsonrpcserver.server"):
+        serve("localhost", 8000)
+    assert [r.getMessage() for r in caplog.records] == [
+        listening_message("localhost", 8000)
+    ]
+    # Logging is configured (pytest's handler), so nothing extra goes to stderr.
+    assert capsys.readouterr().err == ""
+
+
+@patch("jsonrpcserver.server.ThreadingHTTPServer")
+def test_serve_prints_where_it_listens_without_logging(
+    server: Mock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with patch.object(server_module.logger, "hasHandlers", return_value=False):
+        serve("localhost", 8000)
+    assert capsys.readouterr().err == listening_message("localhost", 8000) + "\n"
+
+
+@patch("jsonrpcserver.server.ThreadingHTTPServer")
+def test_serve_without_stderr(server: Mock) -> None:
+    """sys.stderr is None in a PyInstaller app built with --noconsole (#269)."""
+    with patch.object(
+        server_module.logger, "hasHandlers", return_value=False
+    ), patch.object(sys, "stderr", None):
+        serve("localhost", 8000)
+    server.return_value.serve_forever.assert_called_once_with()
 
 
 @method(name="server_test_ping")

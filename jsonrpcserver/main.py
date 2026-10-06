@@ -1,13 +1,13 @@
-"""The public functions.
+"""The dispatch functions.
 
-These three public functions all perform the same function of dispatching a JSON-RPC
-request, but they each give a different return value.
+All three take a JSON-RPC request string, call the methods and give the response.
+They differ only in the form of the response:
 
-- dispatch_to_responses: Returns Response(s) (or None for notifications).
-- dispatch_to_serializable: Returns a Python dict or list of dicts (or None for
-  notifications).
-- dispatch_to_json/dispatch: Returns a JSON-RPC response string (or an empty string for
-  notifications).
+- dispatch_to_response gives Response objects, or None for a notification.
+- dispatch_to_serializable gives a dict or a list of dicts, or None for a
+  notification.
+- dispatch_to_json, also called dispatch, gives a JSON string, or an empty string
+  for a notification.
 """
 
 import json
@@ -127,40 +127,51 @@ def dispatch_to_response(
     debug: bool = False,
     max_batch_size: Optional[int] = None,
 ) -> Union[Response, List[Response], None]:
-    """Takes a JSON-RPC request string and dispatches it to method(s), giving Response
-    namedtuple(s) or None.
+    """Dispatch a request and give the response as Response objects.
 
-    This is a public wrapper around dispatch_to_response_pure, adding globals and
-    default values to be nicer for end users.
+    Most code wants `dispatch` (a JSON string) or `dispatch_to_serializable` (dicts)
+    instead. Use this one to inspect or change responses before they're serialized.
+
+    Each Response is an oslash `Right` holding a `SuccessResponse`, or a `Left`
+    holding an `ErrorResponse`. oslash has no public way to read them, so check
+    `isinstance(response, Left)` and read `response._error` or `response._value`.
+    These attributes are stable for all of 5.x. Printing a Response raises
+    `TypeError`, because of a bug in oslash; print `to_dict(response)` instead.
 
     Args:
         request: The JSON-RPC request string.
-        methods: Dictionary of methods that can be called - mapping of function names to
-            functions. If not passed, uses the internal global_methods dict which is
-            populated with the @method decorator.
-        context: If given, will be passed as the first argument to methods.
-        deserializer: Function that deserializes the request string.
-        validator: Function that validates the JSON-RPC request. The function should
-            raise an exception if the request is invalid. Batch members are validated
-            individually, with nested arrays rejected before calling the validator.
-            To disable validation, pass lambda _: None.
-        post_process: Function that will be applied to Responses.
-        debug: If True, the error response for an uncaught exception in a method
-            includes the exception message in "data". The default leaves "data" out,
-            because exception messages can contain passwords, file paths and other
-            details a client shouldn't see. Only turn this on in development. The
-            exception is logged either way.
+        methods: The methods requests can call, as a dict (or any mapping) of names
+            to functions. The default is the dict that `@method` fills in,
+            `jsonrpcserver.methods.global_methods`.
+        context: If given, it's passed as the first argument to every method. The
+            client can't see or set it.
+        deserializer: The function that parses the request string. The default is
+            `json.loads`. If it raises, the client gets a -32700 Parse error whose
+            `data` is the exception message.
+        validator: The function that checks a parsed request against the JSON-RPC
+            spec. It should raise an exception, of any kind, if the request is
+            invalid. In a batch it's called once for each request (new in 5.0.10).
+            The default checks against a JSON schema. `lambda _: None` turns
+            validation off.
+        post_process: A function applied to each Response before it's returned.
+        debug: If True, the error response for an exception a method doesn't catch
+            includes the exception message in `data`. The default leaves `data`
+            out, because exception messages can contain passwords, file paths and
+            other details a client shouldn't see. The exception is logged either
+            way. New in 5.0.10.
         max_batch_size: The most requests a batch may hold. A bigger batch gets a
-            single Invalid request response and none of it is dispatched. The default,
-            None, means no limit. Every member costs validation time, so a server
-            open to the internet should set one, such as 100.
+            single -32600 Invalid request response, and none of it is run. The
+            default, None, means no limit. A server open to the internet should set
+            one, such as 100. New in 5.0.10.
 
     Returns:
-        A Response, list of Responses or None.
+        A Response for a single request, a list of Responses for a batch, or None
+            if there's nothing to send back (a notification, or a batch of only
+            notifications). With `post_process`, whatever it returns for each.
 
-    Examples:
-       >>> dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}')
-       '{"jsonrpc": "2.0", "result": "pong", "id": 1}'
+    Raises:
+        ValueError: If `max_batch_size` isn't None or a positive int. Requests never
+            raise: a bad request or a failing method gives an error response.
     """
     check_max_batch_size(max_batch_size)
     response = dispatch_to_response_pure(
@@ -186,10 +197,35 @@ def dispatch_to_serializable(
     debug: bool = False,
     max_batch_size: Optional[int] = None,
 ) -> Union[Dict[str, Any], List[Dict[str, Any]], None]:
-    """Takes a JSON-RPC request string and dispatches it to method(s), giving responses
-    as dicts (or None).
+    """Dispatch a request and give the response as a dict.
 
-    The arguments are the same as dispatch_to_response, apart from post_process.
+    Use it when your framework serializes the response itself, such as a Django
+    `JsonResponse`, or when you want to inspect it.
+
+    Args:
+        request: The JSON-RPC request string.
+        methods: The same as for `dispatch_to_response`.
+        context: The same as for `dispatch_to_response`.
+        deserializer: The same as for `dispatch_to_response`.
+        validator: The same as for `dispatch_to_response`.
+        debug: The same as for `dispatch_to_response`.
+        max_batch_size: The same as for `dispatch_to_response`.
+
+    Returns:
+        The response as a dict, a list of dicts for a batch, or None if there's
+            nothing to send back.
+
+    Raises:
+        ValueError: If `max_batch_size` isn't None or a positive int.
+
+    Example:
+        >>> from jsonrpcserver import Result, Success, dispatch_to_serializable
+        >>> def ping() -> Result:
+        ...     return Success("pong")
+        >>> dispatch_to_serializable(
+        ...     '{"jsonrpc": "2.0", "method": "ping", "id": 1}', methods={"ping": ping}
+        ... )
+        {'jsonrpc': '2.0', 'result': 'pong', 'id': 1}
     """
     return cast(
         Union[Dict[str, Any], List[Dict[str, Any]], None],
@@ -219,17 +255,40 @@ def dispatch_to_json(
         [Union[Dict[str, Any], List[Dict[str, Any]], str]], str
     ] = default_serializer,
 ) -> str:
-    """Takes a JSON-RPC request string and dispatches it to method(s), giving a JSON-RPC
-    response string.
+    """Dispatch a request and give the response as a JSON string.
 
-    This is the main public method, it goes through the entire JSON-RPC process - it's a
-    function from JSON-RPC request string to JSON-RPC response string.
+    This is `dispatch`, the function most code uses. Send the string back to the
+    client. An empty string means there's nothing to send back: the request was a
+    notification, or a batch of only notifications. Over HTTP, send status 204 with
+    no body for that.
 
     Args:
-        serializer: A function to serialize a Python object to json. The default is
-            json.dumps with allow_nan=False. If it raises for a response (say the
-            method returned a datetime), that response becomes an Internal error.
-        The rest: The same as dispatch_to_response.
+        request: The JSON-RPC request string.
+        methods: The same as for `dispatch_to_response`.
+        context: The same as for `dispatch_to_response`.
+        deserializer: The same as for `dispatch_to_response`.
+        validator: The same as for `dispatch_to_response`.
+        debug: The same as for `dispatch_to_response`.
+        max_batch_size: The same as for `dispatch_to_response`.
+        serializer: The function that turns the response into a string. The
+            default is `json.dumps` with `allow_nan=False`, so a result holding NaN
+            or Infinity gives an Internal error instead of invalid JSON (new in
+            5.0.10). If the serializer raises for a response, say because the
+            method returned a `datetime`, that response becomes an Internal error
+            and the rest of a batch is sent as usual.
+
+    Returns:
+        The response as a JSON string, or "" if there's nothing to send back.
+
+    Raises:
+        ValueError: If `max_batch_size` isn't None or a positive int.
+
+    Example:
+        >>> from jsonrpcserver import Result, Success, dispatch
+        >>> def ping() -> Result:
+        ...     return Success("pong")
+        >>> dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}', {"ping": ping})
+        '{"jsonrpc": "2.0", "result": "pong", "id": 1}'
     """
     response = dispatch_to_serializable(
         request,
@@ -245,5 +304,5 @@ def dispatch_to_json(
     return "" if response is None else serialize(serializer, response, debug)
 
 
-# "dispatch" aliases dispatch_to_json.
 dispatch = dispatch_to_json
+"""Another name for `dispatch_to_json`, and the one most code uses."""

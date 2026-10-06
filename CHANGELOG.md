@@ -46,6 +46,16 @@ Errors you return on purpose, with `Error`, `InvalidParams` or by raising
   clients can't parse anything else. The response is still sent as before.
 - `@method` gives a `UserWarning` for a name that starts with `rpc.`, because
   the spec reserves those names.
+- A method that returns a plain value instead of `Success(value)` is a common
+  mistake when upgrading from 4.x. It's now logged with a message that says
+  what to change, instead of a traceback. The client still gets an Internal
+  error.
+- `serve()` says where it's listening when it starts, including a note when it
+  listens on every network interface (the default). It logs the line on the
+  `jsonrpcserver.server` logger, and writes it to stderr if logging isn't
+  configured.
+- Every public function and class has a full docstring, which the new API
+  reference on the docs site is built from.
 
 ### Behaviour changes
 

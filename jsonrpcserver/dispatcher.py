@@ -3,6 +3,7 @@ requests, providing responses.
 """
 
 import logging
+import reprlib
 from functools import partial
 from inspect import iscoroutine, signature
 from itertools import starmap
@@ -112,23 +113,52 @@ def extract_kwargs(request: Request) -> Dict[str, Any]:
     return request.params if isinstance(request.params, dict) else {}
 
 
+class InvalidResultError(AssertionError):
+    """A method returned something other than Success(...) or Error(...)."""
+
+    def __init__(self, result: object):
+        super().__init__(
+            f"The method did not return a valid Result (returned {result!r}). "
+            "Return Success(value) or Error(code, message)."
+        )
+        self.result = result
+
+
 def validate_result(result: object) -> None:
     """Validate the return value from a method.
 
-    Raises an AssertionError if the result returned from a method is invalid.
+    Raises an InvalidResultError, a subclass of AssertionError, if the result returned
+    from a method is invalid.
 
     Returns: None
     """
     # Not an assert statement, because python -O would remove it.
+    returned = result  # Not narrowed by the checks below.
     error: object = getattr(result, "_error", None)
     value: object = getattr(result, "_value", None)
     if not (
         (isinstance(result, Left) and isinstance(error, ErrorResult))
         or (isinstance(result, Right) and isinstance(value, SuccessResult))
     ):
-        raise AssertionError(
-            f"The method did not return a valid Result (returned {result!r})"
-        )
+        raise InvalidResultError(returned)
+
+
+def log_invalid_result(
+    method_name: str, exc: InvalidResultError, log: logging.Logger
+) -> None:
+    """Log a method that returned a plain value, which 4.x allowed, without a traceback.
+
+    The traceback would only point into jsonrpcserver, so the message says what to
+    change instead.
+    """
+    log.error(
+        "Method %r returned %s, which is not a Result, so the client got an "
+        "Internal error. Return Success(value) or Error(code, message). Since 5.0 a "
+        "plain return value is not enough: "
+        "https://bensynapse.github.io/jsonrpcserver/migration/",
+        method_name,
+        reprlib.repr(exc.result),
+    )
 
 
 def exception_data(exc: BaseException, debug: bool) -> Any:
@@ -166,6 +196,9 @@ def call(
     # response.
     except JsonRpcError as exc:
         return Left(ErrorResult(code=exc.code, message=exc.message, data=exc.data))
+    except InvalidResultError as exc:
+        log_invalid_result(request.method, exc, logger)
+        return Left(InternalErrorResult(exception_data(exc, debug)))
     # Any other uncaught exception inside method - internal error.
     except Exception as exc:
         logger.exception("Method %r raised an exception", request.method)

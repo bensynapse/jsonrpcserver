@@ -1,15 +1,16 @@
-"""A method is a Python function that can be called by a JSON-RPC request.
+"""Methods: the functions a JSON-RPC request can call.
 
-They're held in a dict, a mapping of function names to functions.
+The dispatch functions look methods up in a dict of names to functions. The @method
+decorator adds a function to global_methods, the dict they use by default. To use
+your own dict instead, pass it as the methods argument:
 
-The @method decorator adds a method to jsonrpcserver's internal global_methods dict.
-Alternatively pass your own dictionary of methods to `dispatch` with the methods param.
+    dispatch(request)  # the functions registered with @method
+    dispatch(request, methods={"ping": ping})  # only the functions in this dict
 
-    >>> dispatch(request)  # Uses the internal collection of funcs added with @method
-    >>> dispatch(request, methods={"ping": lambda: "pong"})  # Custom collection
+Either way, a method returns Success(...) or Error(...), not a plain value.
 
-Methods can take either positional or named arguments, but not both. This is a
-limitation of JSON-RPC.
+A request's params are either a list (positional arguments) or an object (named
+arguments), not both. That's a JSON-RPC rule.
 """
 
 import warnings
@@ -26,6 +27,11 @@ AnyMethod = Callable[..., Any]
 MethodsArgument = Mapping[str, AnyMethod]
 
 global_methods: Dict[str, AnyMethod] = {}
+"""The methods registered with `@method`, as a dict of names to functions.
+
+The dispatch functions use it when they're called without `methods`. It's shared by
+the whole process, so every module that uses `@method` adds to it.
+"""
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -39,18 +45,36 @@ def method(f: None = None, name: Optional[str] = None) -> Callable[[F], F]: ...
 
 
 def method(f: Optional[F] = None, name: Optional[str] = None) -> Any:
-    """A decorator to add a function into jsonrpcserver's internal global_methods dict.
-    The global_methods dict will be used by default unless a methods argument is passed
-    to `dispatch`.
+    """Register a function as a JSON-RPC method.
 
-    Functions can be renamed by passing a name argument:
+    The function is added to `global_methods`, which the dispatch functions use when
+    they're called without `methods`. It's returned unchanged, so you can still call
+    it yourself, and type checkers see its real signature (from 5.0.10). A method
+    with the same name as an earlier one replaces it, without a warning.
 
-        @method(name="bar")
-        def foo():
-            ...
+    Use it with or without arguments:
 
-    The decorated function is returned unchanged, so type checkers still see its real
-    signature. A method with the same name as an earlier one replaces it.
+    ```python
+    @method
+    def ping() -> Result:
+        return Success("pong")
+
+    @method(name="sum")
+    def add(a: int, b: int) -> Result:
+        return Success(a + b)
+    ```
+
+    Args:
+        f: The function. Leave it out to pass `name`.
+        name: The name requests use to call the method. The default is the
+            function's name.
+
+    Returns:
+        The function itself, or, when called with only `name`, a decorator.
+
+    Warns:
+        UserWarning: If the name starts with "rpc.". The JSON-RPC spec reserves those
+            names. New in 5.0.10.
     """
 
     def decorator(func: F) -> F:
