@@ -20,7 +20,7 @@ async def handler(websocket: ServerConnection) -> None:
 
 
 async def main() -> None:
-    # A bigger message closes the connection. 1 MiB is also the default.
+    # A bigger message closes the connection. The default is 1 MiB.
     async with serve(handler, "localhost", 8000, max_size=1_000_000) as server:
         await server.serve_forever()
 

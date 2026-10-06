@@ -70,7 +70,7 @@ the JSON-RPC spec says (#291). `[1, {"jsonrpc": "2.0", "method": "ping", "id":
 error and `ping` runs.
 
 As part of that change, a custom `validator` is now called once for each
-request in a batch, with that request's dict. Before, it was called once with
+request in a batch, with just that request. Before, it was called once with
 the whole list. Some validators enforced a rule about the batch as a whole,
 such as a size limit or refusing batches. Those no longer see the list, so the
 rule silently stops working. Use `max_batch_size` for a size limit. Validators

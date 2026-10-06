@@ -15,7 +15,7 @@ async def handle(request: web.Request) -> web.Response:
     return web.Response(status=204)
 
 
-# Bigger requests get 413 Request Entity Too Large. 1 MiB is also the default.
+# Bigger requests get 413 Request Entity Too Large. The default is 1 MiB.
 app = web.Application(client_max_size=1_000_000)
 app.router.add_post("/", handle)
 

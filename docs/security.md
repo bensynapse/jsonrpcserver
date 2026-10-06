@@ -184,8 +184,10 @@ it's listening when it starts, including a note when that's every interface.
 
 Python's `json` module accepts `NaN`, `Infinity` and numbers like `1e400` in a
 request, which aren't valid JSON. [Validation](validation.md#nan-infinity-and-huge-numbers)
-shows a stricter `deserializer` that rejects them. From 5.0.10, responses
-never contain them: the default serializer sends an Internal error instead.
+shows a stricter `deserializer` that rejects them. From 5.0.10, `dispatch`
+and `async_dispatch` never write them with the default serializer: they send
+an Internal error instead. `dispatch_to_serializable` gives you the float as
+it is, so if your framework serializes the dict, check how it treats them.
 
 ## Reporting a vulnerability
 

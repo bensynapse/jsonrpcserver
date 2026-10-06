@@ -67,7 +67,8 @@ Settings → Environments → pypi.
 5. If the release fixes a security problem, publish a repository security
    advisory for it, so Dependabot, `pip-audit` and OSV warn people on older
    versions. In the Security tab, choose "New draft security advisory". Set
-   the affected versions (for 5.0.10: `<= 5.0.9`) and the patched version.
+   the affected versions (for 5.0.10: `>= 5.0.0, <= 5.0.9`) and the patched
+   version.
    Pick the CWE, link the docs page that explains it, and publish. For the
    5.0.10 fix, the CWE is CWE-209, information exposure through an error
    message.

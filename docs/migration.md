@@ -20,8 +20,9 @@ small changes.
         return "pong"
     ```
 
-    still runs, but the client gets `{"code": -32603, "message": "Internal
-    error"}` with no details. From 5.0.10 the log says what's wrong:
+    still runs, but the client gets a -32603 "Internal error". Up to 5.0.9,
+    its `data` says "The method did not return a valid Result". From 5.0.10
+    the client gets no details, and the log says what's wrong:
 
     ```text
     Method 'ping' returned 'pong', which is not a Result, so the client got an Internal error. Return Success(value) or Error(code, message). ...
@@ -97,7 +98,7 @@ print(response, 200 if response else 204)
 | `convert_camel_case=True` | removed. Name your methods and parameters as clients call them |
 | `basic_logging=True`, `trim_log_values=True` | removed. Configure the `jsonrpcserver` logger yourself |
 | a `.jsonrpcserverrc` config file | removed. Pass options to `dispatch` |
-| `debug=True` | still there. In 5.0.10 it controls whether exception messages reach the client |
+| `debug=True` | removed in 5.0.0, so 5.0.0 to 5.0.9 always send exception messages to the client. Back in 5.0.10, where it works as in 4.x: off by default |
 
 Code written for 4.x that 5.x can't run gives clear errors in most cases. The
 removed keywords raise `TypeError`, and `response.wanted` raises
@@ -119,7 +120,7 @@ Pass `debug=True` in development to get the message back in the response. See
 [Security](security.md).
 
 **Custom validators see one request at a time.** In a batch, the `validator`
-is called once for each request, with that request's dict. In 5.0.9 it was
+is called once for each request, with just that request. In 5.0.9 it was
 called once with the whole list. A validator that enforced a rule about the
 whole batch, such as a size limit, silently stops doing it. Use
 `max_batch_size` instead. See [Validation](validation.md).

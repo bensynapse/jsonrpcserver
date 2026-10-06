@@ -39,8 +39,10 @@ because the request couldn't be trusted.
 
 ## A custom validator
 
-Pass `validator` to use your own. It gets the parsed request, a dict, and
-should raise an exception of any kind if the request is invalid. What it
+Pass `validator` to use your own. It gets the parsed request, usually a
+dict, and should raise an exception of any kind if the request is invalid.
+It can also get anything else that parsed, such as a number, a string or an
+empty list, so don't assume a dict. What it
 returns is ignored. In a batch, it's called once for each request.
 
 This one runs the default checks, then refuses requests without an `id`, so
@@ -102,8 +104,9 @@ Without it, `dispatch` still never raises, but bad requests get odd answers:
 
 A request with no `jsonrpc` member runs, and params that aren't a list or an
 object are ignored. A request with no `method` gets a -32000 "Server error",
-and jsonrpcserver logs it as an error of its own. Keep validation on for
-anything that strangers can reach.
+and jsonrpcserver logs it as an error of its own. An empty batch, `[]`, gets
+no response at all instead of an error. Keep validation on for anything that
+strangers can reach.
 
 ## NaN, Infinity and huge numbers
 
@@ -140,6 +143,7 @@ def strict_loads(request: str) -> Any:
 '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error", "data": "NaN is not valid JSON"}, "id": null}'
 ```
 
-Responses never contain them in 5.0.10: the default serializer refuses to
-write them and sends an Internal error instead. 5.0.9 writes them as they
-are.
+In 5.0.10, `dispatch` and `async_dispatch` never write them with the default
+serializer. It refuses, and the client gets an Internal error instead. 5.0.9
+writes them as they are. `dispatch_to_serializable` returns the float itself,
+so if your framework serializes the dict, check how it treats them.

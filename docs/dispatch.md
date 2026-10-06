@@ -116,8 +116,9 @@ Only use it in development. Exception messages can include passwords, file
 paths and SQL. The default is `False`.
 
 !!! info "New in 5.0.10"
-    The `debug` option, and leaving the message out by default. In 5.0.9 and
-    earlier the message is always sent, and `debug` raises `TypeError`. See
+    The `debug` option, and leaving the message out by default. In 5.0.0 to
+    5.0.9 the message is always sent, and `debug` raises `TypeError`. (4.x
+    had `debug` too, off by default.) See
     [Security](security.md#if-you-are-on-509).
 
 ### max_batch_size

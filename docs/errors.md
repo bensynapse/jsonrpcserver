@@ -23,9 +23,10 @@ reaches the client. Keep that in mind if you write a custom deserializer,
 because its exception messages are sent as they are.
 
 !!! info "Changed in 5.0.10"
-    Before 5.0.10, the -32603 and -32000 errors always carried the exception
-    message. It could hold passwords, paths or SQL. See
-    [Security](security.md).
+    From 5.0.0 to 5.0.9, the -32603 and -32000 errors always carried the
+    exception message. It could hold passwords, paths or SQL. See
+    [Security](security.md). 4.x had a `debug` option that hid it by default,
+    and 5.0.10 brings that back.
 
 ## Four ways for a method to fail
 
@@ -177,5 +178,6 @@ jsonrpcserver.dispatcher ERROR: Method 'ping' returned 'pong', which is not a Re
 
 !!! info "New in 5.0.10"
     The `jsonrpcserver.main` messages and this one. Before 5.0.10, a
-    serializer failure raised out of `dispatch`, and a plain return value was
-    only explained in the response's `data`.
+    serializer failure raised out of `dispatch`. A plain return value was
+    logged with a traceback, and its explanation was also sent to the client
+    in `data`.

@@ -13,8 +13,8 @@ Uses the `websockets.asyncio` server from
 
 Unlike HTTP, a WebSocket doesn't need an answer to every message, so a
 notification gets nothing back. websockets closes the connection if a message
-is bigger than `max_size`. Its default is 1 MiB, and the example sets it
-explicitly. `max_batch_size` limits how many requests one batch can hold. See
+is bigger than `max_size`. Its default is 1 MiB (1,048,576 bytes). The
+example sets 1,000,000, like the other examples. `max_batch_size` limits how many requests one batch can hold. See
 [Security](../security.md).
 
 Requests on one connection are handled one at a time, in the order they

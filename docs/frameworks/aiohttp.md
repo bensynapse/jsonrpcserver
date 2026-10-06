@@ -9,7 +9,7 @@ description: A JSON-RPC 2.0 server with aiohttp and jsonrpcserver's async_dispat
 ```
 
 aiohttp refuses a body bigger than `client_max_size` with 413. Its default is
-1 MiB, and the example sets it explicitly so it's easy to change.
+1 MiB (1,048,576 bytes). The example sets 1,000,000, like the other examples.
 `max_batch_size` limits how many requests one batch can hold. See
 [Security](../security.md).
 

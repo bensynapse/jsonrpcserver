@@ -45,7 +45,8 @@ Know its limits before you use it:
 
 !!! info "Changed in 5.0.10"
     In 5.0.9, `serve()` answers a notification with 200 and an empty body
-    instead of 204, and prints nothing when it starts. It drops the
+    instead of 204. It also handles one request at a time. It logs its start on
+    the root logger at INFO, so you usually see nothing. It drops the
     connection for a missing `Content-Length` or a body that isn't UTF-8.
 
 ## Try it

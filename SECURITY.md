@@ -13,8 +13,8 @@ problem. We'll reply within a week.
 
 Fixes go into the latest 5.x release. Older releases don't get updates.
 
-Versions before 5.0.10 send the message of any uncaught exception in a method
-to the client. Please upgrade when 5.0.10 is on PyPI. Until then, the
+Versions 5.0.0 to 5.0.9 send the message of any uncaught exception in a
+method to the client. Please upgrade when 5.0.10 is on PyPI. Until then, the
 [security notes](https://bensynapse.github.io/jsonrpcserver/security/#if-you-are-on-509)
 in the docs show how to protect a 5.0.9 server. They also cover the other
 settings to check before exposing a server.

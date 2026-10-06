@@ -104,8 +104,8 @@ the request's params. `data=NODATA` means the error has no `data` member.
 
 ## Deprecated
 
-These still work in 5.x, but give a `DeprecationWarning` and will be removed
-in 6.0.
+These still work in 5.x and will be removed in 6.0. The three functions give
+a `DeprecationWarning`. `ResponseType` gives none, but use `Response`.
 
 ::: jsonrpcserver.response.serialize_error
 

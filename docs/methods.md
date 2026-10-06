@@ -49,8 +49,9 @@ jsonrpcserver adds the `jsonrpc` and `id` parts.
 
 !!! warning "Return `Success(value)`, not the value"
     In 4.x a method returned its result directly. In 5.x, `return "pong"`
-    sends the client a -32603 "Internal error", with no details. The log
-    says what went wrong. See [Migration](migration.md).
+    sends the client a -32603 "Internal error". From 5.0.10 the response
+    has no details, and the log says what went wrong. See
+    [Migration](migration.md).
 
 `Success` takes the result value. If there's nothing to return, call it with
 no argument and the result is `null`:
