@@ -51,7 +51,7 @@ jobs:
       - run: mypy
       - name: No links to hijacked domains anywhere in the repo
         run: |
-          # composed.blog was the old author's blog and now redirects to spam.
+          # The second pattern is the previous author's blog, which now redirects to spam.
           if git grep -n -I -i -E 'jsonrpc(client|server)\.com|composed\.blog' -- ':!.github/scripts/check_metadata.py'; then
             echo "::error::Remove the links above. Those domains no longer belong to the project."
             exit 1
