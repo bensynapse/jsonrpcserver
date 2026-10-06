@@ -138,20 +138,24 @@ async def test_dispatch_to_response_pure_success() -> None:
 @patch("jsonrpcserver.async_dispatcher.dispatch_request", side_effect=ValueError("foo"))
 @pytest.mark.asyncio
 async def test_dispatch_to_response_pure_server_error(
-    _: Mock, debug: bool, data: Any
+    dispatch_request: Mock, debug: bool, data: Any
 ) -> None:
     async def hello() -> Result:
         return Success()
 
+    methods = {"hello": hello}
     assert await dispatch_to_response_pure(
         deserializer=default_deserializer,
         validator=default_validator,
         post_process=identity,
         context=NOCONTEXT,
-        methods={"hello": hello},
+        methods=methods,
         request='{"jsonrpc": "2.0", "method": "hello", "id": 1}',
         debug=debug,
     ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", data, None))
+    dispatch_request.assert_called_once_with(
+        methods, NOCONTEXT, Request("hello", [], 1), debug=debug
+    )
 
 
 @pytest.mark.asyncio

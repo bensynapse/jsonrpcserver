@@ -172,11 +172,14 @@ def test_method_without_signature_is_called() -> None:
     def wrap(value: Any) -> Result:
         return Success(value)
 
-    with patch("jsonrpcserver.dispatcher.signature", side_effect=ValueError("none")):
+    with patch(
+        "jsonrpcserver.dispatcher.signature", side_effect=ValueError("none")
+    ) as signature:
         response = dispatch(
             '{"jsonrpc": "2.0", "method": "wrap", "params": [5], "id": 1}',
             {"wrap": wrap},
         )
+    signature.assert_called_once_with(wrap)
     assert json.loads(response) == {"jsonrpc": "2.0", "result": 5, "id": 1}
 
 
