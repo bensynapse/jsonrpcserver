@@ -1,102 +1,56 @@
-# Examples
+---
+description: Use jsonrpcserver with any Python framework or transport. Complete, tested examples for http.server, Flask, Werkzeug, Django, FastAPI, aiohttp, Sanic, Tornado, websockets, ZeroMQ and Socket.IO.
+---
 
-jsonrpcserver doesn't listen on a port itself. You receive the request with a
-framework or transport library, pass it to `dispatch` or `async_dispatch`, and
-send back the result. Each example below answers `ping` with `pong` on
-`localhost:5000`. CI starts every one of them and sends it real requests.
+# Frameworks
 
-For HTTP, send status 204 with an empty body when `dispatch` gives an empty
-string. That means the request was a notification. With websockets and most
-message queues, you can send nothing at all.
+jsonrpcserver doesn't do the networking. You receive the request with a
+framework or transport library, pass it to `dispatch` or `async_dispatch`,
+and send back the result. Each page below has a complete example that answers
+`ping` with `pong` on `localhost:8000`. CI starts every one of them and sends
+it real requests, including a batch that's too big and, for HTTP, a body
+that's too big.
 
-The libraries' own docs cover running them in production.
+| Framework | Transport | Sync or async | Body size limit in the example | Page |
+|---|---|---|---|---|
+| `http.server` (standard library) | HTTP | sync | checked by hand | [http.server and serve()](frameworks/http-server.md) |
+| [Flask](https://flask.palletsprojects.com/) | HTTP | sync | `MAX_CONTENT_LENGTH` | [Flask](frameworks/flask.md) |
+| [Werkzeug](https://werkzeug.palletsprojects.com/) | HTTP | sync | `max_content_length` | [Werkzeug](frameworks/werkzeug.md) |
+| [Django](https://www.djangoproject.com/) | HTTP | sync | `DATA_UPLOAD_MAX_MEMORY_SIZE` | [Django](frameworks/django.md) |
+| [FastAPI](https://fastapi.tiangolo.com/) | HTTP | async | checked by hand | [FastAPI](frameworks/fastapi.md) |
+| [aiohttp](https://docs.aiohttp.org/) | HTTP | async | `client_max_size` | [aiohttp](frameworks/aiohttp.md) |
+| [Sanic](https://sanic.dev/) | HTTP | async | `REQUEST_MAX_SIZE` | [Sanic](frameworks/sanic.md) |
+| [Tornado](https://www.tornadoweb.org/) | HTTP | async | `max_body_size` | [Tornado](frameworks/tornado.md) |
+| [websockets](https://websockets.readthedocs.io/) | WebSocket | async | `max_size` | [websockets](frameworks/websockets.md) |
+| [pyzmq](https://pyzmq.readthedocs.io/) | ZeroMQ | both | `MAXMSGSIZE` | [ZeroMQ](frameworks/zeromq.md) |
+| [Flask-SocketIO](https://flask-socketio.readthedocs.io/) | Socket.IO | sync | `max_http_buffer_size` | [Socket.IO](frameworks/socketio.md) |
 
-## http.server
+The pattern is the same everywhere:
 
-Python's built-in HTTP server, with no other dependencies:
+1. Read the request body as a string. Refuse one that's too big before you
+   read it.
+2. Pass it to `dispatch`, or `await async_dispatch(...)` in an async
+   framework, with `max_batch_size` set.
+3. If the result is a non-empty string, send it with
+   `Content-Type: application/json` and status 200. If it's empty, the
+   request was a notification: over HTTP, send status 204 with no body. Over
+   other transports, send nothing (ZeroMQ's REQ/REP sockets are the exception:
+   they must reply, so send the empty string).
 
-```python
---8<-- "docs/examples/http_server.py"
-```
+A JSON-RPC error is still a successful HTTP exchange, so it's sent with
+status 200 too.
 
-jsonrpcserver also has a small built-in server, `serve()`. It's for trying
-things out, not for production:
+Every example limits the body to 1,000,000 bytes and batches to 100 requests.
+Pick limits that fit your methods. [Security](security.md) explains why both
+matter. To give methods the request or the logged-in user, see
+[Context](context.md).
 
-```python
---8<-- "docs/examples/serve.py"
-```
+!!! tip "Port 8000"
+    The examples use port 8000, the same as the
+    [jsonrpcclient](https://bensynapse.github.io/jsonrpcclient/) examples.
+    Run one of each and they talk to each other. Port 5000, which many
+    tutorials use, is taken by the AirPlay Receiver on recent macOS versions.
 
-## Flask
-
-```python
---8<-- "docs/examples/flask_server.py"
-```
-
-## Werkzeug
-
-```python
---8<-- "docs/examples/werkzeug_server.py"
-```
-
-## Django
-
-A whole Django project in one file. In your project, the view goes in an app
-and the URL pattern in its `urls.py`.
-
-```python
---8<-- "docs/examples/django_server.py"
-```
-
-## FastAPI
-
-```python
---8<-- "docs/examples/fastapi_server.py"
-```
-
-## aiohttp
-
-```python
---8<-- "docs/examples/aiohttp_server.py"
-```
-
-## Sanic
-
-```python
---8<-- "docs/examples/sanic_server.py"
-```
-
-## Tornado
-
-```python
---8<-- "docs/examples/tornado_server.py"
-```
-
-## websockets
-
-Uses the `websockets.asyncio` server from websockets 13 and later.
-
-```python
---8<-- "docs/examples/websockets_server.py"
-```
-
-## ZeroMQ
-
-Using [pyzmq](https://pyzmq.readthedocs.io/):
-
-```python
---8<-- "docs/examples/zeromq_server.py"
-```
-
-With asyncio, using pyzmq's `zmq.asyncio`:
-
-```python
---8<-- "docs/examples/zeromq_async_server.py"
-```
-
-## Socket.IO
-
-Using [Flask-SocketIO](https://flask-socketio.readthedocs.io/):
-
-```python
---8<-- "docs/examples/socketio_server.py"
-```
+The examples listen on `localhost` only. To accept connections from other
+machines, change it to the address you want. Then put the server behind a
+production web server, as each framework's docs describe.

@@ -9,13 +9,15 @@ async def ping() -> Result:
 
 
 async def handle(request: web.Request) -> web.Response:
-    if response := await async_dispatch(await request.text()):
+    # max_batch_size: see the Security page.
+    if response := await async_dispatch(await request.text(), max_batch_size=100):
         return web.Response(text=response, content_type="application/json")
     return web.Response(status=204)
 
 
-app = web.Application()
+# Bigger requests get 413 Request Entity Too Large. 1 MiB is also the default.
+app = web.Application(client_max_size=1_000_000)
 app.router.add_post("/", handle)
 
 if __name__ == "__main__":
-    web.run_app(app, host="localhost", port=5000)
+    web.run_app(app, host="localhost", port=8000)

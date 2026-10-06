@@ -4,24 +4,51 @@ Usage: python docs/examples/check_examples.py [EXAMPLE.py ...]
 
 Each server must answer a "ping" request with "pong". The HTTP servers must
 also answer a notification with 204 No Content and an empty body. The servers
-listen on localhost port 5000, as the docs say. Needs the packages in
-requirements/examples.txt.
+that follow the Security page must refuse a batch over 100 requests and a body
+over 1,000,000 bytes. The servers listen on localhost port 8000, as the docs
+say. Needs the packages in requirements/examples.txt, and curl.
+
+It also sends the quickstart server the curl command from the docs.
 """
 
+import http.client
 import json
+import shlex
 import socket
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 HERE = Path(__file__).parent
-PORT = 5000
+PORT = 8000
 REQUEST = json.dumps({"jsonrpc": "2.0", "method": "ping", "id": 1})
 NOTIFICATION = json.dumps({"jsonrpc": "2.0", "method": "ping"})
 EXPECTED = {"jsonrpc": "2.0", "result": "pong", "id": 1}
+BIG_BATCH = json.dumps(
+    [{"jsonrpc": "2.0", "method": "ping", "id": n} for n in range(101)]
+)
+BATCH_REFUSED = {
+    "jsonrpc": "2.0",
+    "error": {
+        "code": -32600,
+        "message": "Invalid request",
+        "data": "The batch has 101 requests. The limit is 100.",
+    },
+    "id": None,
+}
+MAX_BODY = 1_000_000
+
+# The curl command in the README and on the home page. tests/test_docs.py
+# checks that they show this command and this output.
+CURL = (
+    "curl -s -H 'Content-Type: application/json' "
+    """-d '{"jsonrpc": "2.0", "method": "ping", "id": 1}' http://localhost:8000/"""
+)
+CURL_OUTPUT = '{"jsonrpc": "2.0", "result": "pong", "id": 1}'
 
 
 def post(body: str) -> Tuple[int, str, str]:
@@ -30,15 +57,46 @@ def post(body: str) -> Tuple[int, str, str]:
         data=body.encode(),
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(request, timeout=10) as response:
-        return (
-            response.status,
-            response.headers.get("Content-Type", ""),
-            response.read().decode(),
-        )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return (
+                response.status,
+                response.headers.get("Content-Type", ""),
+                response.read().decode(),
+            )
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.headers.get("Content-Type", ""), exc.read().decode()
 
 
-def check_http() -> None:
+def post_raw(body: Optional[bytes]) -> int:
+    """POST without urllib's help: no Content-Length when body is None."""
+    connection = http.client.HTTPConnection("localhost", PORT, timeout=10)
+    try:
+        if body is None:
+            connection.putrequest("POST", "/")
+            connection.putheader("Content-Type", "application/json")
+            connection.endheaders()
+        else:
+            connection.request(
+                "POST", "/", body=body, headers={"Content-Type": "application/json"}
+            )
+        return connection.getresponse().status
+    finally:
+        connection.close()
+
+
+def post_raw_body(body: bytes) -> Tuple[int, str]:
+    """POST bytes that may not be valid UTF-8. Return the status and body."""
+    connection = http.client.HTTPConnection("localhost", PORT, timeout=10)
+    try:
+        connection.request("POST", "/", body=body)
+        response = connection.getresponse()
+        return response.status, response.read().decode()
+    finally:
+        connection.close()
+
+
+def check_ping_and_notification() -> None:
     status, content_type, body = post(REQUEST)
     assert status == 200, status
     assert content_type.startswith("application/json"), content_type
@@ -47,12 +105,47 @@ def check_http() -> None:
     assert (status, body) == (204, ""), (status, body)
 
 
+def check_limits(too_large: int) -> None:
+    status, _, body = post(BIG_BATCH)
+    assert status == 200, status
+    assert json.loads(body) == BATCH_REFUSED, body
+    status = post_raw(b" " * (MAX_BODY + 1))
+    assert status == too_large, status
+
+
+def check_quickstart() -> None:
+    check_ping_and_notification()
+    output = subprocess.run(
+        shlex.split(CURL), capture_output=True, text=True, timeout=30, check=True
+    ).stdout
+    assert output == CURL_OUTPUT, output
+
+
+def check_http_server() -> None:
+    check_ping_and_notification()
+    check_limits(413)
+    assert post_raw(None) == 411
+    status, body = post_raw_body(b'{"jsonrpc": "2.0", "method": "\xff", "id": 1}')
+    assert status == 200, status
+    assert json.loads(body)["error"]["code"] == -32700, body
+
+
+def check_http(too_large: int) -> Callable[[], None]:
+    def check() -> None:
+        check_ping_and_notification()
+        check_limits(too_large)
+
+    return check
+
+
 def check_websockets() -> None:
     from websockets.sync.client import connect
 
-    with connect(f"ws://localhost:{PORT}") as websocket:
+    with connect(f"ws://localhost:{PORT}", max_size=None) as websocket:
         websocket.send(REQUEST)
         assert json.loads(websocket.recv(timeout=10)) == EXPECTED
+        websocket.send(BIG_BATCH)
+        assert json.loads(websocket.recv(timeout=10)) == BATCH_REFUSED
 
 
 def check_zeromq() -> None:
@@ -68,6 +161,8 @@ def check_zeromq() -> None:
         assert json.loads(client.recv_string()) == EXPECTED
         client.send_string(NOTIFICATION)
         assert client.recv_string() == ""
+        client.send_string(BIG_BATCH)
+        assert json.loads(client.recv_string()) == BATCH_REFUSED
     finally:
         client.close()
         context.term()
@@ -82,23 +177,29 @@ def check_socketio() -> None:
         event, data = client.receive(timeout=10)
         assert event == "message", event
         assert json.loads(data) == EXPECTED, data
+        client.emit("message", BIG_BATCH)
+        event, data = client.receive(timeout=10)
+        assert json.loads(data) == BATCH_REFUSED, data
 
 
 EXAMPLES: Dict[str, Callable[[], None]] = {
-    "http_server.py": check_http,
-    "serve.py": check_http,
-    "flask_server.py": check_http,
-    "werkzeug_server.py": check_http,
-    "django_server.py": check_http,
-    "fastapi_server.py": check_http,
-    "aiohttp_server.py": check_http,
-    "sanic_server.py": check_http,
-    "tornado_server.py": check_http,
+    "quickstart.py": check_quickstart,
+    "http_server.py": check_http_server,
+    "flask_server.py": check_http(413),
+    "werkzeug_server.py": check_http(413),
+    # Django answers a body over DATA_UPLOAD_MAX_MEMORY_SIZE with 400.
+    "django_server.py": check_http(400),
+    "fastapi_server.py": check_http(413),
+    "aiohttp_server.py": check_http(413),
+    "sanic_server.py": check_http(413),
+    "tornado_server.py": check_http(400),
     "websockets_server.py": check_websockets,
     "zeromq_server.py": check_zeromq,
     "zeromq_async_server.py": check_zeromq,
     "socketio_server.py": check_socketio,
 }
+# Files that aren't servers.
+NOT_SERVERS = {"check_examples.py"}
 
 
 def port_open() -> bool:
@@ -148,7 +249,7 @@ def run(example: str) -> bool:
 
 
 def main(names: List[str]) -> int:
-    on_disk = {path.name for path in HERE.glob("*.py")} - {Path(__file__).name}
+    on_disk = {path.name for path in HERE.glob("*.py")} - NOT_SERVERS
     missing = on_disk - set(EXAMPLES)
     if missing:
         print(f"Examples with no check: {sorted(missing)}")

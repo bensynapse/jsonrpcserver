@@ -36,10 +36,19 @@ mkdocs serve
 ```
 
 `tests/test_docs.py` runs every Python block in the README and docs, so keep
-the shown output accurate. The framework examples are files in
-`docs/examples/`. To run them against real servers, install
-`requirements/examples.txt` and run `python docs/examples/check_examples.py`.
-They listen on port 5000, so free it first.
+the shown output accurate. `tests/doc_examples.py` explains the markers that
+skip a block or start the quickstart server for it. Blocks that need a
+framework are skipped unless it's installed, so to run them all, install
+`requirements/examples.txt` first, as CI's docs job does.
+
+The framework examples are files in `docs/examples/`. To start each one and
+send it real requests, install `requirements/examples.txt` and run
+`python docs/examples/check_examples.py`. It also needs curl. The examples
+listen on `localhost:8000`, so free that port first.
+
+The API reference is built from the docstrings with mkdocstrings. Use Google
+style, and add every new public name to `docs/reference.md`. A test checks
+that every name in `__all__` is there.
 
 ## Pull requests
 

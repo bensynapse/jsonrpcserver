@@ -12,7 +12,9 @@ async def ping() -> Result:
 
 class MainHandler(web.RequestHandler):
     async def post(self) -> None:
-        if response := await async_dispatch(self.request.body.decode()):
+        # max_batch_size: see the Security page.
+        request = self.request.body.decode()
+        if response := await async_dispatch(request, max_batch_size=100):
             self.set_header("Content-Type", "application/json")
             self.write(response)
         else:
@@ -21,7 +23,8 @@ class MainHandler(web.RequestHandler):
 
 async def main() -> None:
     app = web.Application([(r"/", MainHandler)])
-    app.listen(5000, address="localhost")
+    # Tornado's default limit is 100 MB.
+    app.listen(8000, address="localhost", max_body_size=1_000_000)
     await asyncio.Event().wait()
 
 

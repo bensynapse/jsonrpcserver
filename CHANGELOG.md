@@ -1,11 +1,15 @@
-# jsonrpcserver Change Log
+# Changelog
 
-## 5.0.10
+## 5.0.10 (not released yet)
 
 The first release since the project moved to
 [bensynapse/jsonrpcserver](https://github.com/bensynapse/jsonrpcserver). It
 fixes a security problem, so please upgrade. Code that works with 5.0.9 keeps
-working, apart from the security fix and the "Behaviour changes" below.
+working, apart from the security fix and the "Behaviour changes" below. The
+[migration guide](https://bensynapse.github.io/jsonrpcserver/migration/#from-509-to-5010)
+lists what you might notice. Until it's on PyPI, the
+[Security page](https://bensynapse.github.io/jsonrpcserver/security/#if-you-are-on-509)
+shows how to protect a 5.0.9 server.
 
 ### Security
 
@@ -22,9 +26,10 @@ The response now leaves `data` out:
 ```
 
 The same applies to the -32000 "Server error" response for errors inside
-jsonrpcserver itself. The exception and its traceback are still logged, through
-the `jsonrpcserver.dispatcher` and `jsonrpcserver.async_dispatcher` loggers, so
-you can find them in your server logs.
+jsonrpcserver itself. The exception and its traceback are still logged, on the
+`jsonrpcserver` logger, so you can find them in your server logs. The
+[logging section](https://bensynapse.github.io/jsonrpcserver/errors/#logging)
+of the docs lists its child loggers.
 
 To get the old behaviour back while developing, pass `debug=True` to
 `dispatch`, `async_dispatch` or any of the other dispatch functions. Don't turn
@@ -107,6 +112,13 @@ examples moved there from the wiki. CI starts each example server and sends
 it requests, and runs every code example in the docs. The websockets example
 uses the current `websockets.asyncio` API (#287). A new Security page covers
 the settings to check before exposing a server.
+
+The site has an API reference built from the docstrings and a migration
+guide from 4.x. New pages cover errors and logging, notifications and
+batches, context, validation, typing, testing and threads. Each framework has its own
+page, and every example sets `max_batch_size` and a request size limit. The
+examples listen on `localhost:8000`, where the jsonrpcclient examples
+connect.
 
 ### Packaging
 
@@ -192,18 +204,24 @@ work in 5.x but give a `DeprecationWarning`, and will be removed in 6.0.
 
 - Add to FAQ.
 
-## 5.0.3
+## 5.0.3 (Aug 31, 2021)
 
 - Update readme and documentation.
 - Internal function `compose` has been replaced with a better one.
 
-## 5.0.2
+## 5.0.2 (Aug 18, 2021)
 
 - Update readme and setup.py, minor adjustments.
 
+## 5.0.1 (Aug 18, 2021)
+
+No changelog entry was written for this release. See the `5.0.1` tag.
+
 ## 5.0.0 (Aug 16, 2021)
 
-A complete rebuild, with a few important usage changes.
+A complete rebuild, with a few important usage changes. The
+[migration guide](https://bensynapse.github.io/jsonrpcserver/migration/#from-4x-to-5x)
+shows how to update 4.x code.
 
 - Methods must now return a Result (Success or Error).
 - The dispatch function now returns a string.
@@ -333,7 +351,7 @@ _The 4.x releases will support Python 3.6+ only._
 - Pass some context data through dispatch to the methods.
 - Fix not calling notifications in batch requests.
 
-## 3.4.3 (Jul 13, 2017)
+## 3.4.4 (Jul 13, 2017)
 - Fix AttributeError on batch responses
 
 ## 3.4.3 (Jul 12, 2017)

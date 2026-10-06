@@ -1,0 +1,2 @@
+# For .github/scripts/check_site.py, which CI's site job runs.
+playwright==1.63.0

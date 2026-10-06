@@ -1,11 +1,17 @@
+---
+description: The plan for jsonrpcserver 6.0. Results without oslash, safer defaults, a faster validator, and cleanups. 5.x keeps its API and gets fixes.
+---
+
 # Roadmap
 
 This is the plan for the next major version. Nothing here is released yet, and
 it may change. 5.x keeps its current API, and gets bug and security fixes.
 
 Discussion happens in the
-[issues](https://github.com/bensynapse/jsonrpcserver/issues) and in the draft
-[6.0 pull request (#255)](https://github.com/bensynapse/jsonrpcserver/pull/255).
+[issues](https://github.com/bensynapse/jsonrpcserver/issues) and
+[discussions](https://github.com/bensynapse/jsonrpcserver/discussions). An
+older draft of 6.0 exists as a pull request from 2022. It's out of date, and
+the plan below replaces it.
 
 ## 6.0
 
@@ -13,10 +19,11 @@ These change behaviour or remove things, so they wait for a major version.
 
 **Results without oslash.** `Success`, `Error` and the dispatch functions are
 built on the oslash library. Its last release for Python 3.8 to 3.11 came out
-in 2020, and its newer releases need Python 3.12. 6.0 will replace it with plain typed
-result classes, or with `returns` as #255 started. Code that only uses
-`Success`, `Error` and `dispatch` should keep working. Code that inspects the
-`Left` and `Right` objects from `dispatch_to_response` will need changes.
+in 2020, and its newer releases need Python 3.12. 6.0 will replace it with
+small typed result classes of its own, or with another maintained library.
+Code that only uses `Success`, `Error` and `dispatch` should keep working.
+Code that inspects the `Left` and `Right` objects from `dispatch_to_response`
+will need changes.
 
 **Safer defaults.**
 
@@ -36,9 +43,9 @@ five request fields would be faster and lighter.
 
 - Remove `serialize_error`, `serialize_success` and `to_serializable_one`,
   which 5.0.10 deprecated.
-- Decide whether async methods need their own decorator, as #255 proposes,
-  or whether `async_dispatch` keeps accepting both kinds. Use the same option
-  names in the sync and async functions.
+- Decide whether async methods need their own decorator, or whether
+  `async_dispatch` keeps accepting both kinds. Use the same option names and
+  return types in the sync and async functions.
 - Rework or remove the built-in `serve()` development server.
 - Drop Python versions that have reached end of life.
 

@@ -13,6 +13,9 @@ body:
     id: version
     attributes:
       label: jsonrpcserver version
+      description: >-
+        Run `pip show jsonrpcserver` to find it. From 5.0.10 you can also
+        print `jsonrpcserver.__version__`.
       placeholder: "5.0.9"
     validations:
       required: true

@@ -1,0 +1,22 @@
+{% extends "main.html" %}
+
+{% block content %}
+  <h1>Page not found</h1>
+  <p>
+    There's no page at this address. It may have moved when the documentation
+    was reorganized.
+  </p>
+  <ul>
+    <li><a href="{{ config.site_url }}">Home</a>: install and quickstart</li>
+    <li><a href="{{ config.site_url }}methods/">Methods</a> and <a href="{{ config.site_url }}dispatch/">Dispatch</a></li>
+    <li><a href="{{ config.site_url }}examples/">Frameworks</a>: examples with Flask, Django, FastAPI, aiohttp, websockets, ZeroMQ and more</li>
+    <li><a href="{{ config.site_url }}security/">Security</a>: what to set before a server goes on the internet</li>
+    <li><a href="{{ config.site_url }}reference/">API reference</a></li>
+    <li><a href="{{ config.site_url }}migration/">Migrating from 4.x</a></li>
+  </ul>
+  <p>
+    You can also search with the box at the top of the page, or
+    <a href="https://github.com/bensynapse/jsonrpcserver/issues">open an issue</a>
+    if a link brought you here.
+  </p>
+{% endblock %}

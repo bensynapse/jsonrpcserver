@@ -7,4 +7,4 @@ def ping() -> Result:
 
 
 if __name__ == "__main__":
-    serve("localhost", 5000)
+    serve("localhost", 8000)

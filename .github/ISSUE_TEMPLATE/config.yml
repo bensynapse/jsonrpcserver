@@ -1,8 +1,11 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Ask a question
+    url: https://github.com/bensynapse/jsonrpcserver/discussions/categories/q-a
+    about: Questions about using jsonrpcserver are answered in Discussions.
   - name: Report a security problem
     url: https://github.com/bensynapse/jsonrpcserver/security/advisories/new
     about: Please report security problems privately, not in a public issue.
   - name: Documentation
     url: https://bensynapse.github.io/jsonrpcserver/
-    about: Usage and examples.
+    about: Guides, framework examples, the API reference and the FAQ.

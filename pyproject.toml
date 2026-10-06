@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "jsonrpcserver"
 dynamic = ["version"]
-description = "Process incoming JSON-RPC requests in Python"
+description = "Process incoming JSON-RPC 2.0 requests in Python"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -14,7 +14,7 @@ authors = [
     {name = "Beau Barker", email = "beau@explodinglabs.com"},
 ]
 maintainers = [
-    {name = "bensynapse"},
+    {name = "Synapse Research"},
 ]
 keywords = ["json-rpc", "jsonrpc", "json-rpc-2.0", "rpc", "server"]
 classifiers = [
@@ -48,7 +48,7 @@ Homepage = "https://bensynapse.github.io/jsonrpcserver/"
 Documentation = "https://bensynapse.github.io/jsonrpcserver/"
 Repository = "https://github.com/bensynapse/jsonrpcserver"
 Issues = "https://github.com/bensynapse/jsonrpcserver/issues"
-Changelog = "https://github.com/bensynapse/jsonrpcserver/blob/main/CHANGELOG.md"
+Changelog = "https://bensynapse.github.io/jsonrpcserver/changelog/"
 
 [project.optional-dependencies]
 test = [
@@ -61,8 +61,12 @@ test = [
 [tool.flit.sdist]
 include = [
     "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "RELEASING.md",
+    "SECURITY.md",
     "docs/",
     "mkdocs.yml",
+    "overrides/",
     "requirements/",
     "tests/",
     "tox.ini",
@@ -71,9 +75,10 @@ include = [
 [tool.ruff]
 target-version = "py38"
 
+
 [tool.ruff.format]
-# Its code blocks are "--8<--" include lines, not Python.
-exclude = ["docs/examples.md"]
+# Their code blocks include files with "--8<--" lines, which aren't Python.
+exclude = ["docs/index.md", "docs/frameworks/*.md"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM", "RUF"]

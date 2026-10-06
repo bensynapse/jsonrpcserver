@@ -13,10 +13,13 @@ async def ping() -> Result:
 
 async def main() -> None:
     socket = zmq.asyncio.Context().socket(zmq.REP)
-    socket.bind("tcp://*:5000")
+    # A bigger message disconnects the client. The default is no limit.
+    socket.setsockopt(zmq.MAXMSGSIZE, 1_000_000)
+    socket.bind("tcp://127.0.0.1:8000")
     while True:
         request = await socket.recv_string()
-        await socket.send_string(await async_dispatch(request))
+        # max_batch_size: see the Security page.
+        await socket.send_string(await async_dispatch(request, max_batch_size=100))
 
 
 if __name__ == "__main__":

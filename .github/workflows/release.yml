@@ -32,8 +32,22 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match __version__ $version"
             exit 1
           fi
-      - name: CHANGELOG must have an entry for this version
-        run: grep -q "^## ${GITHUB_REF_NAME#v}\b" CHANGELOG.md
+      - name: CHANGELOG entry must be dated, and the docs must not call it unreleased
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          pattern="${version//./\\.}"
+          if ! grep -qE "^## ${pattern} \([0-9]{4}-[0-9]{2}-[0-9]{2}\)$" CHANGELOG.md; then
+            echo "CHANGELOG.md needs a heading like: ## $version (YYYY-MM-DD). See RELEASING.md."
+            exit 1
+          fi
+          if grep -qE "^ *unreleased: \"?${pattern}\"?$" mkdocs.yml; then
+            echo "mkdocs.yml still marks $version as unreleased. See RELEASING.md."
+            exit 1
+          fi
+          if grep -q "isn't released yet" README.md; then
+            echo "README.md still says a version isn't released yet. See RELEASING.md."
+            exit 1
+          fi
       - run: python -m build
       - run: python -m twine check --strict dist/*
       - run: check-wheel-contents dist/*.whl
