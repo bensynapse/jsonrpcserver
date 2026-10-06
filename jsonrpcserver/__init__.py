@@ -1,4 +1,5 @@
 """Use __all__ so mypy considers these re-exported."""
+
 __all__ = [
     "Error",
     "InvalidParams",

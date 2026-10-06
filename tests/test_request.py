@@ -1,4 +1,5 @@
 """Test request.py"""
+
 from jsonrpcserver.request import Request
 
 # pylint: disable=missing-function-docstring

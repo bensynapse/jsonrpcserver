@@ -2,6 +2,7 @@
 
 TODO: Add tests for dispatch_requests (non-pure version)
 """
+
 import json
 from typing import Any, Callable, Dict
 from unittest.mock import Mock, patch, sentinel
@@ -147,7 +148,9 @@ def test_extract_kwargs() -> None:
 
 
 def test_validate_result_no_arguments() -> None:
-    f = lambda: None
+    def f() -> None:
+        pass
+
     assert validate_args(Request("f", [], NOID), NOCONTEXT, f) == Right(f)
 
 
@@ -162,7 +165,9 @@ def test_validate_result_no_arguments_too_many_positionals() -> None:
 
 
 def test_validate_result_positionals() -> None:
-    f = lambda x: None
+    def f(x: Any) -> None:
+        pass
+
     assert validate_args(Request("f", [1], NOID), NOCONTEXT, f) == Right(f)
 
 
@@ -177,7 +182,9 @@ def test_validate_result_positionals_not_passed() -> None:
 
 
 def test_validate_result_keywords() -> None:
-    f = lambda **kwargs: None
+    def f(**kwargs: Any) -> None:
+        pass
+
     assert validate_args(Request("f", {"foo": "bar"}, NOID), NOCONTEXT, f) == Right(f)
 
 
@@ -595,7 +602,9 @@ def test_dispatch_to_response_pure_notification_invalid_params_auto() -> None:
     )
 
 
-def test_dispatch_to_response_pure_invalid_params_notification_explicitly_returned() -> None:
+def test_dispatch_to_response_pure_invalid_params_notification_explicitly_returned() -> (
+    None
+):
     def foo(colour: str) -> Result:
         if colour not in ("orange", "red", "yellow"):
             return InvalidParams()

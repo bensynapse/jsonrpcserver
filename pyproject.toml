@@ -1,0 +1,26 @@
+[tool.ruff]
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Request and response fixtures are easier to read on one line.
+"tests/*" = ["E501"]
+
+[tool.mypy]
+# mypy only accepts 3.10 or later here. pyright checks the 3.8 target.
+python_version = "3.10"
+strict = true
+files = ["jsonrpcserver"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["jsonrpcserver"]
+
+[tool.coverage.report]
+fail_under = 97
+show_missing = true

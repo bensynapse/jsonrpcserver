@@ -3,6 +3,7 @@
 After parsing a request string, we put the (dict) requests into these Request
 namedtuples, simply because they're nicer to work with.
 """
+
 from typing import Any, Dict, List, NamedTuple, Union
 
 

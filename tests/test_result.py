@@ -1,4 +1,5 @@
 """Test result.py"""
+
 from unittest.mock import sentinel
 
 from oslash.either import Left, Right  # type: ignore

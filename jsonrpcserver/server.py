@@ -1,6 +1,7 @@
 """A simple development server for serving JSON-RPC requests using Python's builtin
 http.server module.
 """
+
 import logging
 from http.server import BaseHTTPRequestHandler, HTTPServer
 

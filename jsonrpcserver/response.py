@@ -2,6 +2,7 @@
 
 https://www.jsonrpc.org/specification#response_object
 """
+
 from typing import Any, Dict, List, NamedTuple, Type, Union
 
 from oslash.either import Either, Left  # type: ignore
@@ -103,7 +104,7 @@ def to_dict(response: ResponseType) -> Dict[str, Any]:
 
 
 def to_serializable(
-    response: Union[ResponseType, List[ResponseType], None]
+    response: Union[ResponseType, List[ResponseType], None],
 ) -> Union[Deserialized, None]:
     """Serialize a response object (or list of them), to a dict, or list of them."""
     if response is None:

@@ -1,4 +1,5 @@
 """Test async_dispatcher.py"""
+
 import asyncio
 import json
 from typing import Any, Dict, List
@@ -13,9 +14,9 @@ from jsonrpcserver.async_dispatcher import (
     dispatch_request,
     dispatch_to_response_pure,
 )
+from jsonrpcserver.async_main import dispatch as async_dispatch
 from jsonrpcserver.codes import ERROR_INTERNAL_ERROR, ERROR_SERVER_ERROR
 from jsonrpcserver.dispatcher import dispatch_to_response_pure as sync_dispatch_pure
-from jsonrpcserver.async_main import dispatch as async_dispatch
 from jsonrpcserver.exceptions import JsonRpcError
 from jsonrpcserver.main import default_deserializer, default_validator, dispatch
 from jsonrpcserver.request import Request
