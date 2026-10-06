@@ -3,6 +3,7 @@
 https://www.jsonrpc.org/specification#response_object
 """
 
+import warnings
 from typing import Any, Dict, List, NamedTuple, Type, Union
 
 from oslash.either import Either, Left  # type: ignore
@@ -111,4 +112,35 @@ def to_serializable(
         return None
     if isinstance(response, List):
         return [to_dict(r) for r in response]
+    return to_dict(response)
+
+
+# The names used in 5.0.9. They were renamed before 5.0.10, and are kept so code that
+# imports them keeps working. They will be removed in 6.0.
+
+
+def _deprecated(old: str, new: str) -> None:
+    warnings.warn(
+        f"jsonrpcserver.response.{old} is deprecated and will be removed in 6.0. "
+        f"Use {new} instead.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+
+
+def serialize_error(response: ErrorResponse) -> Dict[str, Any]:
+    """Deprecated. Use to_error_dict."""
+    _deprecated("serialize_error", "to_error_dict")
+    return to_error_dict(response)
+
+
+def serialize_success(response: SuccessResponse) -> Dict[str, Any]:
+    """Deprecated. Use to_success_dict."""
+    _deprecated("serialize_success", "to_success_dict")
+    return to_success_dict(response)
+
+
+def to_serializable_one(response: ResponseType) -> Dict[str, Any]:
+    """Deprecated. Use to_dict."""
+    _deprecated("to_serializable_one", "to_dict")
     return to_dict(response)

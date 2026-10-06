@@ -57,8 +57,21 @@ They aren't valid JSON, and strict parsers (JavaScript's `JSON.parse`, Go,
 Rust) reject the whole response. A result containing one now gives an Internal
 error instead. If you depend on the old output, pass `serializer=json.dumps`.
 
+### Deprecations
+
+Three functions in `jsonrpcserver.response` have new names. The old names still
+work in 5.x but give a `DeprecationWarning`, and will be removed in 6.0.
+
+- `serialize_error` is now `to_error_dict`.
+- `serialize_success` is now `to_success_dict`.
+- `to_serializable_one` is now `to_dict`. It's also still importable from
+  `jsonrpcserver.main`.
+
 ### Fixes
 
+- `import jsonrpcserver` gave a `DeprecationWarning` on Python 3.11 and 3.12,
+  which is an error when tests run with `-W error`. The request schema is now
+  loaded with `pkgutil.get_data`.
 - If a method returned something `json.dumps` can't handle, such as a
   `datetime`, `dispatch` raised `TypeError` instead of responding. In a batch,
   the other responses were lost too. That response is now an Internal error,
