@@ -69,6 +69,16 @@ work in 5.x but give a `DeprecationWarning`, and will be removed in 6.0.
 
 ### Fixes
 
+- The development server, `serve()`, dropped every connection without a
+  response when `sys.stderr` was `None`. That's the case in a PyInstaller app
+  built with `--noconsole` (#269). It now logs requests through the logging
+  module, on the `jsonrpcserver.server` logger at INFO level, instead of
+  writing to stderr. Use `logging.basicConfig(level=logging.INFO)` to see them.
+- `serve()` also answers a body that isn't valid UTF-8 with a -32700 "Parse
+  error". A missing or invalid `Content-Length` gets 411 or 400. Before, all
+  of these closed the connection with no response. Notifications get 204 No
+  Content instead of 200 with an empty body. It handles requests in threads,
+  and closes its socket when it stops.
 - `import jsonrpcserver` gave a `DeprecationWarning` on Python 3.11 and 3.12,
   which is an error when tests run with `-W error`. The request schema is now
   loaded with `pkgutil.get_data`.
