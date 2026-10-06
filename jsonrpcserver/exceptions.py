@@ -3,6 +3,7 @@
 from typing import Any
 
 from .sentinels import NODATA
+from .utils import warn_if_invalid_error
 
 
 class JsonRpcError(Exception):
@@ -12,4 +13,5 @@ class JsonRpcError(Exception):
     """
 
     def __init__(self, code: int, message: str, data: Any = NODATA):
+        warn_if_invalid_error(code, message, stacklevel=2)
         self.code, self.message, self.data = (code, message, data)

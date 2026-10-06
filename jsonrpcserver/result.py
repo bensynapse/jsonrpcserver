@@ -13,6 +13,7 @@ from oslash.either import Either, Left, Right  # type: ignore
 
 from .codes import ERROR_INTERNAL_ERROR, ERROR_INVALID_PARAMS, ERROR_METHOD_NOT_FOUND
 from .sentinels import NODATA
+from .utils import warn_if_invalid_error
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
 
@@ -63,7 +64,9 @@ def Success(*args: Any, **kwargs: Any) -> Either[ErrorResult, SuccessResult]:
 
 
 def Error(*args: Any, **kwargs: Any) -> Either[ErrorResult, SuccessResult]:
-    return Left(ErrorResult(*args, **kwargs))
+    error = ErrorResult(*args, **kwargs)
+    warn_if_invalid_error(error.code, error.message, stacklevel=2)
+    return Left(error)
 
 
 def InvalidParams(*args: Any, **kwargs: Any) -> Either[ErrorResult, SuccessResult]:

@@ -36,6 +36,11 @@ Errors you return on purpose, with `Error`, `InvalidParams` or by raising
   before. Each request in a batch costs schema validation time. A 5 MB batch
   of 100,000 pings took about 4 seconds of CPU, so a public server should set
   a limit. 100 is a sensible starting point.
+- `Error` and `JsonRpcError` give a `UserWarning` if the code isn't an integer
+  or the message isn't a string. The spec requires an integer code, and some
+  clients can't parse anything else. The response is still sent as before.
+- `@method` gives a `UserWarning` for a name that starts with `rpc.`, because
+  the spec reserves those names.
 
 ### Behaviour changes
 

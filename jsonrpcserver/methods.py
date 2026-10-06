@@ -12,6 +12,7 @@ Methods can take either positional or named arguments, but not both. This is a
 limitation of JSON-RPC.
 """
 
+import warnings
 from typing import Any, Callable, Dict, Optional, cast
 
 from .result import Result
@@ -38,8 +39,14 @@ def method(
     """
 
     def decorator(func: Method) -> Method:
-        nonlocal name
-        global_methods[name or func.__name__] = func
+        method_name = name or func.__name__
+        if method_name.startswith("rpc."):
+            warnings.warn(
+                f"Method names starting with 'rpc.' are reserved by the JSON-RPC spec "
+                f"({method_name!r})",
+                stacklevel=3 if callable(f) else 2,
+            )
+        global_methods[method_name] = func
         return func
 
     return decorator(f) if callable(f) else cast(Method, decorator)
