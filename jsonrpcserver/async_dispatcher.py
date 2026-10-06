@@ -3,12 +3,14 @@
 import asyncio
 import logging
 from functools import partial
+from inspect import isawaitable
 from itertools import starmap
 from typing import Any, Callable, Iterable, Tuple, Union
 
 from oslash.either import Left  # type: ignore
 
 from .dispatcher import (
+    NORESPONSE,
     Deserialized,
     create_request,
     deserialize_request,
@@ -17,6 +19,7 @@ from .dispatcher import (
     extract_kwargs,
     extract_list,
     get_method,
+    member_id,
     not_notification,
     to_response,
     validate_args,
@@ -32,16 +35,15 @@ from .utils import identity, make_list
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=missing-function-docstring,duplicate-code,protected-access
-
 
 async def call(
     request: Request, context: Any, method: Method, debug: bool = False
 ) -> Result:
     try:
-        result = await method(
-            *extract_args(request, context), **extract_kwargs(request)
-        )
+        result = method(*extract_args(request, context), **extract_kwargs(request))
+        # Plain (sync) methods work too. Their result is used as it is.
+        if isawaitable(result):
+            result = await result
         validate_result(result)
     except JsonRpcError as exc:
         return Left(ErrorResult(code=exc.code, message=exc.message, data=exc.data))
@@ -110,6 +112,30 @@ async def dispatch_single(
     )
 
 
+async def dispatch_member(
+    validator: Callable[[Deserialized], object],
+    methods: Methods,
+    context: Any,
+    post_process: Callable[[Response], Any],
+    member: Any,
+    debug: bool = False,
+) -> Any:
+    """Dispatch one member of a batch, keeping any failure inside that member.
+
+    Returns: The post-processed response, or NORESPONSE for a notification.
+    """
+    try:
+        response = await dispatch_single(
+            validator, methods, context, member, debug=debug
+        )
+    except Exception as exc:
+        logger.exception("Error while dispatching a member of a batch")
+        response = Left(
+            ServerErrorResponse(exception_data(exc, debug), member_id(member))
+        )
+    return NORESPONSE if response is None else post_process(response)
+
+
 async def dispatch_to_response_pure(
     *,
     deserializer: Callable[[str], Deserialized],
@@ -129,16 +155,14 @@ async def dispatch_to_response_pure(
         ):
             responses = await asyncio.gather(
                 *(
-                    dispatch_single(validator, methods, context, member, debug=debug)
+                    dispatch_member(
+                        validator, methods, context, post_process, member, debug=debug
+                    )
                     for member in result._value
                 )
             )
             return extract_list(
-                True,
-                map(
-                    post_process,
-                    filter(lambda response: response is not None, responses),
-                ),
+                True, [response for response in responses if response is not NORESPONSE]
             )
         result = result.bind(partial(validate_request, validator))
         return (
