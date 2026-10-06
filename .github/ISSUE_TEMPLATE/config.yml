@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/bensynapse/jsonrpcserver/security/advisories/new
+    about: Please report security problems privately, not in a public issue.
+  - name: Documentation
+    url: https://bensynapse.github.io/jsonrpcserver/
+    about: Usage and examples.
