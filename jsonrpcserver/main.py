@@ -12,7 +12,7 @@ request, but they each give a different return value.
 
 import json
 import logging
-from importlib.resources import read_text
+import pkgutil
 from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 from jsonschema.validators import validator_for
@@ -25,7 +25,11 @@ from .dispatcher import (
     exception_data,
 )
 from .methods import Methods, global_methods
-from .response import Response, to_dict
+from .response import (
+    Response,
+    to_dict,
+    to_serializable_one,  # noqa: F401  Importable from here in 5.0.9.
+)
 from .sentinels import NOCONTEXT, NODATA
 from .utils import identity
 
@@ -96,7 +100,9 @@ def serialize(
 
 # Prepare the jsonschema validator. This is global so it loads only once, not every
 # time dispatch is called.
-schema = json.loads(read_text(__package__, "request-schema.json"))
+# pkgutil.get_data works on every supported Python, and inside zip files and frozen
+# apps. importlib.resources.read_text is deprecated on 3.11 and 3.12.
+schema = json.loads(pkgutil.get_data(__package__, "request-schema.json") or b"")
 klass = validator_for(schema)
 klass.check_schema(schema)
 default_validator = klass(schema).validate
