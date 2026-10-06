@@ -1,11 +1,15 @@
 """Async version of main.py. The public async functions."""
 
-import json
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union, cast
 
 from .async_dispatcher import dispatch_to_response_pure
 from .dispatcher import Deserialized
-from .main import default_deserializer, default_validator
+from .main import (
+    default_deserializer,
+    default_serializer,
+    default_validator,
+    serialize,
+)
 from .methods import Methods, global_methods
 from .response import Response, to_serializable
 from .sentinels import NOCONTEXT
@@ -48,11 +52,15 @@ async def dispatch_to_json(
     *args: Any,
     serializer: Callable[
         [Union[Dict[str, Any], List[Dict[str, Any]], None]], str
-    ] = json.dumps,
+    ] = default_serializer,
     **kwargs: Any,
 ) -> str:
     response = await dispatch_to_serializable(*args, **kwargs)
-    return "" if response is None else serializer(response)
+    return (
+        ""
+        if response is None
+        else serialize(serializer, response, kwargs.get("debug", False))
+    )
 
 
 dispatch = dispatch_to_json

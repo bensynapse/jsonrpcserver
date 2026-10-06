@@ -2,10 +2,9 @@
 requests, providing responses.
 """
 
-# pylint: disable=protected-access
 import logging
 from functools import partial
-from inspect import signature
+from inspect import iscoroutine, signature
 from itertools import starmap
 from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 
@@ -30,12 +29,16 @@ from .result import (
     Result,
     SuccessResult,
 )
-from .sentinels import NOCONTEXT, NODATA, NOID
+from .sentinels import NOCONTEXT, NODATA, NOID, Sentinel
 from .utils import compose, identity, make_list
 
 Deserialized = Union[Dict[str, Any], List[Dict[str, Any]]]
 
 logger = logging.getLogger(__name__)
+
+# Returned by dispatch_member for a notification. Not None, because post_process may
+# legitimately return None.
+NORESPONSE = Sentinel("NoResponse")
 
 
 def extract_list(
@@ -78,7 +81,9 @@ def to_response(request: Request, result: Result) -> Response:
 
     Returns: A Response.
     """
-    assert request.id is not NOID
+    # Not an assert statement, because python -O would remove it.
+    if request.id is NOID:
+        raise AssertionError("Can't respond to a notification")
     return (
         Left(ErrorResponse(**result._error._asdict(), id=request.id))
         if isinstance(result, Left)
@@ -112,9 +117,14 @@ def validate_result(result: Result) -> None:
 
     Returns: None
     """
-    assert (isinstance(result, Left) and isinstance(result._error, ErrorResult)) or (
-        isinstance(result, Right) and isinstance(result._value, SuccessResult)
-    ), f"The method did not return a valid Result (returned {result!r})"
+    # Not an assert statement, because python -O would remove it.
+    if not (
+        (isinstance(result, Left) and isinstance(result._error, ErrorResult))
+        or (isinstance(result, Right) and isinstance(result._value, SuccessResult))
+    ):
+        raise AssertionError(
+            f"The method did not return a valid Result (returned {result!r})"
+        )
 
 
 def exception_data(exc: BaseException, debug: bool) -> Any:
@@ -136,6 +146,12 @@ def call(request: Request, context: Any, method: Method, debug: bool = False) ->
     """
     try:
         result = method(*extract_args(request, context), **extract_kwargs(request))
+        if iscoroutine(result):
+            result.close()  # Avoids a "coroutine was never awaited" warning.
+            raise TypeError(
+                f"Method {request.method!r} is async. Use async_dispatch to call "
+                "async methods."
+            )
         # validate_result raises AssertionError if the return value is not a valid
         # Result, which should respond with Internal Error because its a problem in the
         # method.
@@ -159,7 +175,13 @@ def validate_args(
     Returns: Either the function to be called, or an Invalid Params error result.
     """
     try:
-        signature(func).bind(*extract_args(request, context), **extract_kwargs(request))
+        sig = signature(func)
+    except ValueError:
+        # Some builtins have no signature we can inspect. Call them anyway, and let
+        # call() deal with a bad argument list.
+        return Right(func)
+    try:
+        sig.bind(*extract_args(request, context), **extract_kwargs(request))
     except TypeError as exc:
         return Left(InvalidParamsResult(str(exc)))
     return Right(func)
@@ -289,6 +311,41 @@ def dispatch_single(
     )
 
 
+def member_id(member: Any) -> Any:
+    """The id of a batch member, or None if it has none we can use.
+
+    Used for the error response when something unexpected goes wrong with one member
+    of a batch.
+    """
+    if isinstance(member, dict):
+        id_ = member.get("id")  # pyright: ignore[reportUnknownMemberType]
+        if id_ is None or isinstance(id_, (str, int, float)):
+            return id_
+    return None
+
+
+def dispatch_member(
+    validator: Callable[[Deserialized], object],
+    methods: Methods,
+    context: Any,
+    post_process: Callable[[Response], Any],
+    member: Any,
+    debug: bool = False,
+) -> Any:
+    """Dispatch one member of a batch, keeping any failure inside that member.
+
+    Returns: The post-processed response, or NORESPONSE for a notification.
+    """
+    try:
+        response = dispatch_single(validator, methods, context, member, debug=debug)
+    except Exception as exc:
+        logger.exception("Error while dispatching a member of a batch")
+        response = Left(
+            ServerErrorResponse(exception_data(exc, debug), member_id(member))
+        )
+    return NORESPONSE if response is None else post_process(response)
+
+
 def dispatch_to_response_pure(
     *,
     deserializer: Callable[[str], Deserialized],
@@ -316,16 +373,14 @@ def dispatch_to_response_pure(
             and isinstance(result._value, list)
             and result._value
         ):
-            responses = map(
-                partial(dispatch_single, validator, methods, context, debug=debug),
-                result._value,
-            )
+            responses = [
+                dispatch_member(
+                    validator, methods, context, post_process, member, debug=debug
+                )
+                for member in result._value
+            ]
             return extract_list(
-                True,
-                map(
-                    post_process,
-                    filter(lambda response: response is not None, responses),
-                ),
+                True, [response for response in responses if response is not NORESPONSE]
             )
         result = result.bind(partial(validate_request, validator))
         return (

@@ -1,3 +1,4 @@
+hypothesis==6.168.5
 mypy==2.4.0
 pyright==1.1.414
 pytest==9.1.1

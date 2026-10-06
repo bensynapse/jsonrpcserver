@@ -28,6 +28,33 @@ it on in production.
 Errors you return on purpose, with `Error`, `InvalidParams` or by raising
 `JsonRpcError`, are not affected. Their `data` is sent as before.
 
+### Behaviour changes
+
+`dispatch` no longer writes `NaN`, `Infinity` or `-Infinity` into a response.
+They aren't valid JSON, and strict parsers (JavaScript's `JSON.parse`, Go,
+Rust) reject the whole response. A result containing one now gives an Internal
+error instead. If you depend on the old output, pass `serializer=json.dumps`.
+
+### Fixes
+
+- If a method returned something `json.dumps` can't handle, such as a
+  `datetime`, `dispatch` raised `TypeError` instead of responding. In a batch,
+  the other responses were lost too. That response is now an Internal error,
+  and the rest of the batch is sent as usual.
+- A failure outside the method itself used to turn a whole batch into a single
+  "Server error" with a null id. Now only the member that failed gets the
+  error. One way to hit it was a builtin such as `max`, whose signature can't
+  be inspected. Another was a batch member that isn't an object, with
+  validation turned off.
+- Methods whose signature can't be inspected are now called, instead of
+  failing before the call.
+- `async_dispatch` now accepts plain (non-async) methods as well. Calling an
+  async method through `dispatch` gives a clear message in the log, and no
+  "coroutine was never awaited" warning.
+- Under `python -O`, a method that returned something other than a `Result`
+  broke the whole batch, because the check was an `assert` statement. The
+  check now works with `-O` too.
+
 ## 5.0.9 (Sep 15, 2022)
 
 - Remove unncessary `package_data` from setup.py (#243)
