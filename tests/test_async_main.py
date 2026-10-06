@@ -3,7 +3,7 @@
 import json
 
 import pytest
-from oslash.either import Right  # type: ignore
+from oslash.either import Right
 
 from jsonrpcserver.async_main import (
     dispatch_to_json,

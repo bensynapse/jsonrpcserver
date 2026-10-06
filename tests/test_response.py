@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import sentinel
 
 import pytest
-from oslash.either import Left, Right  # type: ignore
+from oslash.either import Left, Right
 
 from jsonrpcserver.response import (
     ErrorResponse,
@@ -122,7 +122,11 @@ def test_to_serializable_list() -> None:
     [
         ("serialize_error", "to_error_dict", ErrorResponse(1, "foo", NODATA, 1)),
         ("serialize_success", "to_success_dict", SuccessResponse("foo", 1)),
-        ("to_serializable_one", "to_dict", Right(SuccessResponse("foo", 1))),
+        (
+            "to_serializable_one",
+            "to_dict",
+            Right[SuccessResponse, ErrorResponse](SuccessResponse("foo", 1)),
+        ),
     ],
 )
 def test_deprecated_names(old: str, new: str, argument: Any) -> None:

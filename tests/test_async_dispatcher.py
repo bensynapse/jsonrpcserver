@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from unittest.mock import Mock, patch
 
 import pytest
-from oslash.either import Left, Right  # type: ignore
+from oslash.either import Left, Right
 
 from jsonrpcserver.async_dispatcher import (
     call,
@@ -15,7 +15,11 @@ from jsonrpcserver.async_dispatcher import (
     dispatch_to_response_pure,
 )
 from jsonrpcserver.async_main import dispatch as async_dispatch
-from jsonrpcserver.codes import ERROR_INTERNAL_ERROR, ERROR_SERVER_ERROR
+from jsonrpcserver.codes import (
+    ERROR_INTERNAL_ERROR,
+    ERROR_METHOD_NOT_FOUND,
+    ERROR_SERVER_ERROR,
+)
 from jsonrpcserver.dispatcher import dispatch_to_response_pure as sync_dispatch_pure
 from jsonrpcserver.exceptions import JsonRpcError
 from jsonrpcserver.main import default_deserializer, default_validator, dispatch
@@ -96,6 +100,15 @@ async def test_dispatch_request() -> None:
     assert await dispatch_request({"ping": ping}, NOCONTEXT, request) == (
         request,
         Right(SuccessResult("pong")),
+    )
+
+
+@pytest.mark.asyncio
+async def test_dispatch_request_method_not_found() -> None:
+    request = Request("nope", [], 1)
+    assert await dispatch_request({"ping": ping}, NOCONTEXT, request) == (
+        request,
+        Left(ErrorResult(ERROR_METHOD_NOT_FOUND, "Method not found", "nope")),
     )
 
 

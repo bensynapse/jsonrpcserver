@@ -49,6 +49,7 @@ jobs:
       - run: ruff check --output-format=github .
       - run: ruff format --check .
       - run: mypy
+      - run: pyright
       - name: No links to hijacked domains anywhere in the repo
         run: |
           # The second pattern is the previous author's blog, which now redirects to spam.

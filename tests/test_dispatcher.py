@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict
 from unittest.mock import Mock, patch, sentinel
 
 import pytest
-from oslash.either import Left, Right  # type: ignore
+from oslash.either import Left, Right
 
 from jsonrpcserver.codes import (
     ERROR_INTERNAL_ERROR,
@@ -123,7 +123,7 @@ def test_to_response_InvalidParams_no_data() -> None:
 
 def test_to_response_notification() -> None:
     with pytest.raises(AssertionError):
-        to_response(Request("ping", [], NOID), SuccessResult(result=sentinel.result))
+        to_response(Request("ping", [], NOID), Success(sentinel.result))
 
 
 # extract_args
@@ -172,9 +172,10 @@ def test_validate_result_positionals() -> None:
 
 
 def test_validate_result_positionals_not_passed() -> None:
-    assert validate_args(
-        Request("f", {"foo": "bar"}, NOID), NOCONTEXT, lambda x: None
-    ) == Left(
+    def f(x: Any) -> None:
+        pass
+
+    assert validate_args(Request("f", {"foo": "bar"}, NOID), NOCONTEXT, f) == Left(
         ErrorResult(
             ERROR_INVALID_PARAMS, "Invalid params", "missing a required argument: 'x'"
         )
@@ -253,11 +254,11 @@ def test_call_raising_exception_is_logged(caplog: pytest.LogCaptureFixture) -> N
     [
         (
             validate_args(Request("ping", [], 1), NOCONTEXT, ping),
-            Right(ping),
+            Right[Any, ErrorResult](ping),
         ),
         (
             validate_args(Request("ping", ["foo"], 1), NOCONTEXT, ping),
-            Left(
+            Left[Any, ErrorResult](
                 ErrorResult(
                     ERROR_INVALID_PARAMS,
                     "Invalid params",
@@ -279,11 +280,11 @@ def test_validate_args(argument: Result, value: Result) -> None:
     [
         (
             get_method({"ping": ping}, "ping"),
-            Right(ping),
+            Right[Any, ErrorResult](ping),
         ),
         (
             get_method({"ping": ping}, "non-existant"),
-            Left(
+            Left[Any, ErrorResult](
                 ErrorResult(ERROR_METHOD_NOT_FOUND, "Method not found", "non-existant")
             ),
         ),

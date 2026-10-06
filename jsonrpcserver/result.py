@@ -9,7 +9,7 @@ The public functions are Success, Error and InvalidParams.
 
 from typing import Any, NamedTuple
 
-from oslash.either import Either, Left, Right  # type: ignore
+from oslash.either import Either, Left, Right
 
 from .codes import ERROR_INTERNAL_ERROR, ERROR_INVALID_PARAMS, ERROR_METHOD_NOT_FOUND
 from .sentinels import NODATA
@@ -37,8 +37,9 @@ class ErrorResult(NamedTuple):
         )
 
 
-# Union of the two valid result types
-Result = Either[ErrorResult, SuccessResult]
+# Union of the two valid result types. oslash's Either takes the success type
+# first, then the error type.
+Result = Either[SuccessResult, ErrorResult]
 
 
 # Helpers
@@ -59,18 +60,17 @@ def InvalidParamsResult(data: Any = NODATA) -> ErrorResult:
 # Helpers (the public functions)
 
 
-def Success(*args: Any, **kwargs: Any) -> Either[ErrorResult, SuccessResult]:
-    return Right(SuccessResult(*args, **kwargs))
+def Success(result: Any = None) -> Result:
+    return Right(SuccessResult(result))
 
 
-def Error(*args: Any, **kwargs: Any) -> Either[ErrorResult, SuccessResult]:
-    error = ErrorResult(*args, **kwargs)
-    warn_if_invalid_error(error.code, error.message, stacklevel=2)
-    return Left(error)
+def Error(code: int, message: str, data: Any = NODATA) -> Result:
+    warn_if_invalid_error(code, message, stacklevel=2)
+    return Left(ErrorResult(code, message, data))
 
 
-def InvalidParams(*args: Any, **kwargs: Any) -> Either[ErrorResult, SuccessResult]:
+def InvalidParams(data: Any = NODATA) -> Result:
     """InvalidParams is a shortcut to save you from having to pass the Invalid Params
     JSON-RPC code to Error.
     """
-    return Left(InvalidParamsResult(*args, **kwargs))
+    return Left(InvalidParamsResult(data))

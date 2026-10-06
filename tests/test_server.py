@@ -5,13 +5,14 @@ import json
 import logging
 import sys
 import threading
+from http.server import ThreadingHTTPServer
 from typing import Dict, Iterator, Optional, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
 
 from jsonrpcserver import Result, Success, method
-from jsonrpcserver.server import RequestHandler, ThreadingHTTPServer, serve
+from jsonrpcserver.server import RequestHandler, serve
 
 
 @patch("jsonrpcserver.server.ThreadingHTTPServer")

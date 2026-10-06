@@ -2,7 +2,7 @@
 
 from unittest.mock import sentinel
 
-from oslash.either import Left, Right  # type: ignore
+from oslash.either import Left, Right
 
 from jsonrpcserver.result import (
     Error,

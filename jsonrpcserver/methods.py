@@ -13,32 +13,47 @@ limitation of JSON-RPC.
 """
 
 import warnings
-from typing import Any, Callable, Dict, Optional, cast
+from typing import Any, Callable, Dict, Mapping, Optional, TypeVar, overload
 
 from .result import Result
 
 Method = Callable[..., Result]
 Methods = Dict[str, Method]
+# Async methods return a coroutine rather than a Result, so the dispatch functions
+# accept any callable. They check what comes back at run time.
+AnyMethod = Callable[..., Any]
+# What the dispatch functions accept for their methods argument. Any mapping will do.
+MethodsArgument = Mapping[str, AnyMethod]
 
-global_methods: Methods = {}
+global_methods: Dict[str, AnyMethod] = {}
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
-def method(
-    f: Optional[Method] = None,  # pylint: disable=invalid-name
-    name: Optional[str] = None,
-) -> Callable[..., Any]:
+@overload
+def method(f: F, name: Optional[str] = None) -> F: ...
+
+
+@overload
+def method(f: None = None, name: Optional[str] = None) -> Callable[[F], F]: ...
+
+
+def method(f: Optional[F] = None, name: Optional[str] = None) -> Any:
     """A decorator to add a function into jsonrpcserver's internal global_methods dict.
     The global_methods dict will be used by default unless a methods argument is passed
     to `dispatch`.
 
     Functions can be renamed by passing a name argument:
 
-        @method(name=bar)
+        @method(name="bar")
         def foo():
             ...
+
+    The decorated function is returned unchanged, so type checkers still see its real
+    signature. A method with the same name as an earlier one replaces it.
     """
 
-    def decorator(func: Method) -> Method:
+    def decorator(func: F) -> F:
         method_name = name or func.__name__
         if method_name.startswith("rpc."):
             warnings.warn(
@@ -49,4 +64,4 @@ def method(
         global_methods[method_name] = func
         return func
 
-    return decorator(f) if callable(f) else cast(Method, decorator)
+    return decorator(f) if callable(f) else decorator

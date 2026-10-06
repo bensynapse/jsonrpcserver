@@ -1,7 +1,7 @@
 """max_batch_size"""
 
 import json
-from typing import Any, Dict, List
+from typing import Any, List
 
 import pytest
 
@@ -112,7 +112,7 @@ def test_validator_sees_members_not_the_batch() -> None:
     """
     seen: List[Any] = []
 
-    def validator(request: Dict[str, Any]) -> None:
+    def validator(request: Any) -> None:
         seen.append(request)
 
     dispatch(batch(2), {"ping": ping}, validator=validator)

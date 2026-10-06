@@ -24,11 +24,17 @@ from .dispatcher import (
     dispatch_to_response_pure,
     exception_data,
 )
-from .methods import Methods, global_methods
+
+# Importable from here in 5.0.9. The "as" form marks a re-export.
+from .methods import Methods as Methods
+from .methods import MethodsArgument, global_methods
 from .response import (
     Response,
     to_dict,
-    to_serializable_one,  # noqa: F401  Importable from here in 5.0.9.
+)
+from .response import (
+    # Importable from here in 5.0.9. The "as" form marks it as a re-export.
+    to_serializable_one as to_serializable_one,
 )
 from .sentinels import NOCONTEXT, NODATA
 from .utils import identity
@@ -102,7 +108,9 @@ def serialize(
 # time dispatch is called.
 # pkgutil.get_data works on every supported Python, and inside zip files and frozen
 # apps. importlib.resources.read_text is deprecated on 3.11 and 3.12.
-schema = json.loads(pkgutil.get_data(__package__, "request-schema.json") or b"")
+schema = json.loads(
+    pkgutil.get_data(__name__.rpartition(".")[0], "request-schema.json") or b""
+)
 klass = validator_for(schema)
 klass.check_schema(schema)
 default_validator = klass(schema).validate
@@ -110,7 +118,7 @@ default_validator = klass(schema).validate
 
 def dispatch_to_response(
     request: str,
-    methods: Optional[Methods] = None,
+    methods: Optional[MethodsArgument] = None,
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = json.loads,
@@ -155,7 +163,7 @@ def dispatch_to_response(
        '{"jsonrpc": "2.0", "result": "pong", "id": 1}'
     """
     check_max_batch_size(max_batch_size)
-    return dispatch_to_response_pure(
+    response = dispatch_to_response_pure(
         deserializer=deserializer,
         validator=validator,
         post_process=post_process,
@@ -165,26 +173,51 @@ def dispatch_to_response(
         debug=debug,
         max_batch_size=max_batch_size,
     )
+    return cast(Union[Response, List[Response], None], response)
 
 
 def dispatch_to_serializable(
-    *args: Any, **kwargs: Any
+    request: str,
+    methods: Optional[MethodsArgument] = None,
+    *,
+    context: Any = NOCONTEXT,
+    deserializer: Callable[[str], Deserialized] = default_deserializer,
+    validator: Callable[[Deserialized], object] = default_validator,
+    debug: bool = False,
+    max_batch_size: Optional[int] = None,
 ) -> Union[Dict[str, Any], List[Dict[str, Any]], None]:
     """Takes a JSON-RPC request string and dispatches it to method(s), giving responses
     as dicts (or None).
+
+    The arguments are the same as dispatch_to_response, apart from post_process.
     """
     return cast(
         Union[Dict[str, Any], List[Dict[str, Any]], None],
-        dispatch_to_response(*args, post_process=to_dict, **kwargs),
+        dispatch_to_response(
+            request,
+            methods,
+            context=context,
+            deserializer=deserializer,
+            validator=validator,
+            debug=debug,
+            max_batch_size=max_batch_size,
+            post_process=to_dict,
+        ),
     )
 
 
 def dispatch_to_json(
-    *args: Any,
+    request: str,
+    methods: Optional[MethodsArgument] = None,
+    *,
+    context: Any = NOCONTEXT,
+    deserializer: Callable[[str], Deserialized] = default_deserializer,
+    validator: Callable[[Deserialized], object] = default_validator,
+    debug: bool = False,
+    max_batch_size: Optional[int] = None,
     serializer: Callable[
         [Union[Dict[str, Any], List[Dict[str, Any]], str]], str
     ] = default_serializer,
-    **kwargs: Any,
 ) -> str:
     """Takes a JSON-RPC request string and dispatches it to method(s), giving a JSON-RPC
     response string.
@@ -196,16 +229,20 @@ def dispatch_to_json(
         serializer: A function to serialize a Python object to json. The default is
             json.dumps with allow_nan=False. If it raises for a response (say the
             method returned a datetime), that response becomes an Internal error.
-        The rest: Passed through to dispatch_to_serializable.
+        The rest: The same as dispatch_to_response.
     """
-    response = dispatch_to_serializable(*args, **kwargs)
+    response = dispatch_to_serializable(
+        request,
+        methods,
+        context=context,
+        deserializer=deserializer,
+        validator=validator,
+        debug=debug,
+        max_batch_size=max_batch_size,
+    )
     # Better to respond with the empty string instead of json "null", because "null" is
     # an invalid JSON-RPC response.
-    return (
-        ""
-        if response is None
-        else serialize(serializer, response, kwargs.get("debug", False))
-    )
+    return "" if response is None else serialize(serializer, response, debug)
 
 
 # "dispatch" aliases dispatch_to_json.

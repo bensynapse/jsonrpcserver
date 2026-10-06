@@ -7,13 +7,13 @@ import datetime
 import json
 import subprocess
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, List
 from unittest.mock import patch
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from oslash.either import Right  # type: ignore
+from oslash.either import Right
 
 from jsonrpcserver import Result, Success, async_dispatch, dispatch
 from jsonrpcserver.dispatcher import NORESPONSE, dispatch_member, member_id
@@ -23,6 +23,10 @@ from jsonrpcserver.sentinels import NOCONTEXT
 from jsonrpcserver.utils import identity
 
 INTERNAL_ERROR = {"code": -32603, "message": "Internal error"}
+
+
+def no_validation(request: Any) -> None:
+    pass
 
 
 def ping() -> Result:
@@ -178,7 +182,7 @@ def test_method_without_signature_is_called() -> None:
 
 def test_non_dict_member_without_validator() -> None:
     response = dispatch(
-        json.dumps([1, request("ping", 2)]), METHODS, validator=lambda _: None
+        json.dumps([1, request("ping", 2)]), METHODS, validator=no_validation
     )
     assert json.loads(response) == [
         {
@@ -241,7 +245,7 @@ def test_member_id(member: Any, expected: Any) -> None:
 @pytest.mark.asyncio
 async def test_non_dict_member_without_validator_async() -> None:
     response = await async_dispatch(
-        json.dumps([1, request("aping", 2)]), {"aping": aping}, validator=lambda _: None
+        json.dumps([1, request("aping", 2)]), {"aping": aping}, validator=no_validation
     )
     assert json.loads(response) == [
         {
@@ -339,17 +343,20 @@ def assert_valid_response(response: Any) -> None:
 def check(text: str) -> None:
     if text == "":
         return
-    parsed = json.loads(
-        text, parse_constant=lambda c: pytest.fail(f"Output contains {c}")
-    )
-    for response in parsed if isinstance(parsed, list) else [parsed]:
+
+    def reject(constant: str) -> None:
+        pytest.fail(f"Output contains {constant}")
+
+    parsed = json.loads(text, parse_constant=reject)
+    responses: List[Any] = parsed if isinstance(parsed, list) else [parsed]  # pyright: ignore[reportUnknownVariableType]
+    for response in responses:
         assert_valid_response(response)
 
 
 @settings(max_examples=300, deadline=None)
 @given(requests, st.booleans())
 def test_dispatch_always_responds(value: Any, validate: bool) -> None:
-    options: Dict[str, Any] = {} if validate else {"validator": lambda _: None}
+    options: Dict[str, Any] = {} if validate else {"validator": no_validation}
     check(dispatch(json.dumps(value), METHODS, **options))
 
 
