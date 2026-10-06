@@ -2,6 +2,11 @@
 
 ## 5.0.10
 
+The first release since the project moved to
+[bensynapse/jsonrpcserver](https://github.com/bensynapse/jsonrpcserver). It
+fixes a security problem, so please upgrade. Code that works with 5.0.9 keeps
+working, apart from the security fix and the "Behaviour changes" below.
+
 ### Security
 
 When a method raised an exception it didn't catch, the error response sent to
@@ -93,6 +98,22 @@ it requests, and runs every code example in the docs. The websockets example
 uses the current `websockets.asyncio` API (#287). A new Security page covers
 the settings to check before exposing a server.
 
+### Packaging
+
+- A wheel is published as well as the source distribution, so installs no
+  longer have to build the package.
+- The package metadata says it needs Python 3.8 or later, and lists 3.8 to
+  3.14. CI tests all of those, plus free-threaded 3.14.
+- The project links on PyPI point to this repository and the new docs. The
+  old website domains belong to someone else now. Please don't follow links
+  to them from older releases.
+- `jsonrpcserver.__version__` gives the version.
+- The `test` extra now includes everything the tests need (`pytest-asyncio`
+  and `hypothesis` were missing). The `examples` extra is gone, because the
+  examples it was for are in the docs now, with their own requirements file.
+- The build uses `pyproject.toml` with flit instead of `setup.py`. The
+  dependencies are the same as in 5.0.9.
+
 ### Deprecations
 
 Three functions in `jsonrpcserver.response` have new names. The old names still
@@ -151,7 +172,7 @@ work in 5.x but give a `DeprecationWarning`, and will be removed in 6.0.
 
 ## 5.0.6 (Jan 14, 2022)
 
-- Fix reversed Result Either type ([#227](https://github.com/explodinglabs/jsonrpcserver/pull/227)).
+- Fix reversed Result Either type ([#227](https://github.com/bensynapse/jsonrpcserver/pull/227)).
 
 ## 5.0.5 (Nov 27, 2021)
 
@@ -185,9 +206,9 @@ A complete rebuild, with a few important usage changes.
 
 ## 4.2.0 (Nov 9, 2020)
 
-- Add ability to use custom serializer and deserializer ([#125](https://github.com/explodinglabs/jsonrpcserver/pull/125))
-- Add ability to use custom method name ([#127](https://github.com/explodinglabs/jsonrpcserver/pull/127))
-- Deny additional parameters in json-rpc request ([#128](https://github.com/explodinglabs/jsonrpcserver/pull/128))
+- Add ability to use custom serializer and deserializer ([#125](https://github.com/bensynapse/jsonrpcserver/pull/125))
+- Add ability to use custom method name ([#127](https://github.com/bensynapse/jsonrpcserver/pull/127))
+- Deny additional parameters in json-rpc request ([#128](https://github.com/bensynapse/jsonrpcserver/pull/128))
 
 Thanks to deptyped.
 

@@ -1,2 +1,0 @@
-include README.md CHANGELOG.md LICENSE
-include jsonrpcserver/py.typed jsonrpcserver/request-schema.json
