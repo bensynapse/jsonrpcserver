@@ -3,7 +3,7 @@
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union, cast
 
 from .async_dispatcher import dispatch_to_response_pure
-from .dispatcher import Deserialized
+from .dispatcher import Deserialized, check_max_batch_size
 from .main import (
     default_deserializer,
     default_serializer,
@@ -27,7 +27,9 @@ async def dispatch_to_response(
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
     debug: bool = False,
+    max_batch_size: Optional[int] = None,
 ) -> Union[Response, Iterable[Response], None]:
+    check_max_batch_size(max_batch_size)
     return await dispatch_to_response_pure(
         deserializer=deserializer,
         validator=validator,
@@ -36,6 +38,7 @@ async def dispatch_to_response(
         methods=global_methods if methods is None else methods,
         request=request,
         debug=debug,
+        max_batch_size=max_batch_size,
     )
 
 

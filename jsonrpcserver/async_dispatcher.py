@@ -5,12 +5,13 @@ import logging
 from functools import partial
 from inspect import isawaitable
 from itertools import starmap
-from typing import Any, Callable, Iterable, Tuple, Union
+from typing import Any, Callable, Iterable, Optional, Tuple, Union
 
 from oslash.either import Left  # type: ignore
 
 from .dispatcher import (
     NORESPONSE,
+    BatchTooLargeResponse,
     Deserialized,
     create_request,
     deserialize_request,
@@ -145,6 +146,7 @@ async def dispatch_to_response_pure(
     post_process: Callable[[Response], Iterable[Any]],
     request: str,
     debug: bool = False,
+    max_batch_size: Optional[int] = None,
 ) -> Union[Response, Iterable[Response], None]:
     try:
         result = deserialize_request(deserializer, request)
@@ -153,6 +155,10 @@ async def dispatch_to_response_pure(
             and isinstance(result._value, list)
             and result._value
         ):
+            if max_batch_size is not None and len(result._value) > max_batch_size:
+                return post_process(
+                    Left(BatchTooLargeResponse(len(result._value), max_batch_size))
+                )
             responses = await asyncio.gather(
                 *(
                     dispatch_member(

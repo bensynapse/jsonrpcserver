@@ -6,7 +6,7 @@ import logging
 from functools import partial
 from inspect import iscoroutine, signature
 from itertools import starmap
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from oslash.either import Either, Left, Right  # type: ignore
 
@@ -311,6 +311,25 @@ def dispatch_single(
     )
 
 
+def BatchTooLargeResponse(size: int, max_batch_size: int) -> ErrorResponse:
+    """The single Invalid request response for a batch over the size limit."""
+    return InvalidRequestResponse(
+        f"The batch has {size} requests. The limit is {max_batch_size}."
+    )
+
+
+def check_max_batch_size(max_batch_size: Optional[int]) -> None:
+    """Raise ValueError for a max_batch_size that makes no sense."""
+    if max_batch_size is not None and (
+        isinstance(max_batch_size, bool)
+        or not isinstance(max_batch_size, int)
+        or max_batch_size < 1
+    ):
+        raise ValueError(
+            f"max_batch_size must be a positive int or None, not {max_batch_size!r}"
+        )
+
+
 def member_id(member: Any) -> Any:
     """The id of a batch member, or None if it has none we can use.
 
@@ -355,12 +374,16 @@ def dispatch_to_response_pure(
     post_process: Callable[[Response], Iterable[Any]],
     request: str,
     debug: bool = False,
+    max_batch_size: Optional[int] = None,
 ) -> Union[Response, List[Response], None]:
     """A function from JSON-RPC request string to Response namedtuple(s), (yet to be
     serialized to json).
 
     If debug is True, error responses for unexpected exceptions include the exception
     message in "data". Leave it off in production.
+
+    If max_batch_size is given, a batch with more members than that gets a single
+    Invalid request response, and none of its members are dispatched.
 
     Returns: A single Response, a list of Responses, or None. None is given for
         notifications or batches of notifications, to indicate that we should not
@@ -373,6 +396,10 @@ def dispatch_to_response_pure(
             and isinstance(result._value, list)
             and result._value
         ):
+            if max_batch_size is not None and len(result._value) > max_batch_size:
+                return post_process(
+                    Left(BatchTooLargeResponse(len(result._value), max_batch_size))
+                )
             responses = [
                 dispatch_member(
                     validator, methods, context, post_process, member, debug=debug
