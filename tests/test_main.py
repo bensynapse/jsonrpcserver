@@ -2,7 +2,7 @@
 
 import json
 
-from oslash.either import Right  # type: ignore
+from oslash.either import Right
 
 from jsonrpcserver.main import (
     dispatch_to_json,

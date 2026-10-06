@@ -4,9 +4,9 @@ https://www.jsonrpc.org/specification#response_object
 """
 
 import warnings
-from typing import Any, Dict, List, NamedTuple, Type, Union
+from typing import Any, Dict, List, NamedTuple, Type, Union, cast
 
-from oslash.either import Either, Left  # type: ignore
+from oslash.either import Either, Left, Right
 
 from .codes import (
     ERROR_INVALID_REQUEST,
@@ -39,8 +39,10 @@ class ErrorResponse(NamedTuple):
     id: Any
 
 
-Response = Either[ErrorResponse, SuccessResponse]
-ResponseType = Type[Either[ErrorResponse, SuccessResponse]]
+# oslash's Either takes the success type first, then the error type.
+Response = Either[SuccessResponse, ErrorResponse]
+# Kept for backward compatibility. Use Response.
+ResponseType = Type[Response]
 
 
 def ParseErrorResponse(data: Any) -> ErrorResponse:  # pylint: disable=invalid-name
@@ -94,18 +96,16 @@ def to_success_dict(response: SuccessResponse) -> Dict[str, Any]:
     return {"jsonrpc": "2.0", "result": response.result, "id": response.id}
 
 
-def to_dict(response: ResponseType) -> Dict[str, Any]:
+def to_dict(response: Response) -> Dict[str, Any]:
     """Serialize either an error or success response object to dict"""
-    # pylint: disable=protected-access
-    return (
-        to_error_dict(response._error)
-        if isinstance(response, Left)
-        else to_success_dict(response._value)
-    )
+    if isinstance(response, Left):
+        return to_error_dict(response._error)
+    success = cast("Right[SuccessResponse, ErrorResponse]", response)
+    return to_success_dict(success._value)
 
 
 def to_serializable(
-    response: Union[ResponseType, List[ResponseType], None],
+    response: Union[Response, List[Response], None],
 ) -> Union[Deserialized, None]:
     """Serialize a response object (or list of them), to a dict, or list of them."""
     if response is None:
@@ -140,7 +140,7 @@ def serialize_success(response: SuccessResponse) -> Dict[str, Any]:
     return to_success_dict(response)
 
 
-def to_serializable_one(response: ResponseType) -> Dict[str, Any]:
+def to_serializable_one(response: Response) -> Dict[str, Any]:
     """Deprecated. Use to_dict."""
     _deprecated("to_serializable_one", "to_dict")
     return to_dict(response)

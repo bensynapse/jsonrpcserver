@@ -62,6 +62,28 @@ They aren't valid JSON, and strict parsers (JavaScript's `JSON.parse`, Go,
 Rust) reject the whole response. A result containing one now gives an Internal
 error instead. If you depend on the old output, pass `serializer=json.dumps`.
 
+### Typing
+
+- `@method` now returns the decorated function unchanged as far as type
+  checkers are concerned. Before, mypy and pyright saw every decorated
+  function as `(*Any, **Any) -> Any`, so they couldn't check calls to your own
+  methods.
+- `Result` had its two type arguments the wrong way round for oslash's
+  `Either`. It is now `Either[SuccessResult, ErrorResult]`. Nothing changes at
+  run time.
+- `Success`, `Error` and `InvalidParams` have real signatures instead of
+  `*args, **kwargs`. `Error` expects an `int` code and a `str` message.
+- The `methods` argument accepts any mapping, and async methods type-check.
+- oslash ships type hints but no `py.typed` marker, so mypy treats `Result` as
+  `Any` unless you tell it to read them. pyright reads them without help. For
+  mypy, add this to `pyproject.toml`:
+
+  ```toml
+  [[tool.mypy.overrides]]
+  module = ["oslash", "oslash.*"]
+  follow_untyped_imports = true
+  ```
+
 ### Deprecations
 
 Three functions in `jsonrpcserver.response` have new names. The old names still

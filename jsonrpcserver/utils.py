@@ -2,7 +2,11 @@
 
 import warnings
 from functools import reduce
-from typing import Any, Callable, List
+from typing import Any, Callable, List, TypeVar, cast
+
+from oslash.either import Either, Right
+
+T = TypeVar("T")
 
 # pylint: disable=invalid-name
 
@@ -19,7 +23,8 @@ def compose(*funcs: Callable[..., Any]) -> Callable[..., Any]:
 
 def make_list(x: Any) -> List[Any]:
     """Puts a value into a list if it's not already."""
-    return x if isinstance(x, list) else [x]
+    # pyright can't tell the element type of a list narrowed from Any.
+    return x if isinstance(x, list) else [x]  # pyright: ignore[reportUnknownVariableType]
 
 
 def warn_if_invalid_error(code: Any, message: Any, stacklevel: int) -> None:
@@ -39,3 +44,8 @@ def warn_if_invalid_error(code: Any, message: Any, stacklevel: int) -> None:
             f"JSON-RPC error messages should be strings, not {message!r}",
             stacklevel=stacklevel + 1,
         )
+
+
+def unwrap(either: Either[T, Any]) -> T:
+    """The value inside a Right. Only call this once you know it isn't a Left."""
+    return cast("Right[T, Any]", either)._value

@@ -12,7 +12,24 @@ select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
 # mypy only accepts 3.10 or later here. pyright checks the 3.8 target.
 python_version = "3.10"
 strict = true
-files = ["jsonrpcserver"]
+files = ["jsonrpcserver", "tests"]
+
+[[tool.mypy.overrides]]
+# oslash has inline annotations but no py.typed marker, so mypy would treat
+# Result and Response as Any without this.
+module = ["oslash", "oslash.*"]
+follow_untyped_imports = true
+
+[tool.pyright]
+include = ["jsonrpcserver", "tests"]
+pythonVersion = "3.8"
+typeCheckingMode = "strict"
+# oslash keeps the value of Left and Right in _error and _value, with no public
+# accessor, so the library has to read them.
+reportPrivateUsage = false
+# oslash ships inline annotations, which pyright reads, but no stub files.
+reportMissingTypeStubs = false
+reportUnnecessaryTypeIgnoreComment = "error"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
