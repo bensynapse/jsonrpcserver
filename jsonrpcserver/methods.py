@@ -78,7 +78,7 @@ def method(f: Optional[F] = None, name: Optional[str] = None) -> Any:
     """
 
     def decorator(func: F) -> F:
-        method_name = name or func.__name__
+        method_name = func.__name__ if name is None else name
         if method_name.startswith("rpc."):
             warnings.warn(
                 f"Method names starting with 'rpc.' are reserved by the JSON-RPC spec "
