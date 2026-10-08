@@ -148,6 +148,8 @@ work in 5.x but give a `DeprecationWarning`, and will be removed in 6.0.
 
 ### Fixes
 
+- `@method(name="")` now registers the empty name. It used to ignore that
+  name and register the function's name instead.
 - The development server, `serve()`, dropped every connection without a
   response when `sys.stderr` was `None`. That's the case in a PyInstaller app
   built with `--noconsole` (#269). It now logs requests through the logging
