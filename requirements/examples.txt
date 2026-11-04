@@ -14,7 +14,7 @@ python-socketio[client]==5.17.0
 pyzmq==27.2.0
 requests==2.34.2
 sanic==25.12.1
-tornado==6.5.10
+tornado==6.6
 ujson==6.0.0
 uvicorn==0.54.0
 websockets==17.2
