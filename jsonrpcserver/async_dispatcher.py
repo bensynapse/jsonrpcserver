@@ -25,9 +25,9 @@ from .dispatcher import (
     member_id,
     not_notification,
     to_response,
+    to_result,
     validate_args,
     validate_request,
-    validate_result,
 )
 from .exceptions import JsonRpcError
 from .methods import AnyMethod, MethodsArgument
@@ -51,7 +51,8 @@ async def call(
         # Plain (sync) methods work too. Their result is used as it is.
         if isawaitable(result):
             result = await result
-        validate_result(result)
+        # A plain value becomes Success(value) (5.1.0).
+        result = to_result(result)
     except JsonRpcError as exc:
         return Left(ErrorResult(code=exc.code, message=exc.message, data=exc.data))
     except InvalidResultError as exc:
@@ -61,8 +62,7 @@ async def call(
         # Other error inside method - Internal error
         logger.exception("Method %r raised an exception", request.method)
         return Left(InternalErrorResult(exception_data(exc, debug)))
-    # validate_result has checked it.
-    return cast(Result, result)
+    return result
 
 
 async def dispatch_request(

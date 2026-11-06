@@ -101,8 +101,8 @@ explains why.
   framework examples and the
   [API reference](https://bensynapse.github.io/jsonrpcserver/reference/).
 - [Migrating from 4.x](https://bensynapse.github.io/jsonrpcserver/migration/):
-  methods must now return `Success(value)`. A 4.x method that returns a plain
-  value still runs, but the client gets an Internal error.
+  methods return `Success(value)` or `Error(...)`. From 5.1.0 a method can also
+  return a plain value, as in 4.x.
 - [Contributing](https://github.com/bensynapse/jsonrpcserver/blob/main/CONTRIBUTING.md)
   and the
   [security policy](https://github.com/bensynapse/jsonrpcserver/blob/main/SECURITY.md).

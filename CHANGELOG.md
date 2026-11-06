@@ -1,5 +1,21 @@
 # Changelog
 
+## 5.1.0 (not released yet)
+
+### Added
+
+- A method can return a plain value. `return "pong"` sends the same response as
+  `return Success("pong")`, as in 4.x (#285). Before, a plain value gave the
+  client an Internal error. `Success` and `Error` work as before.
+
+### Changed
+
+- A method that returns an oslash `Left` or `Right` not made by `Success` or
+  `Error`, or a bare `SuccessResult` or `ErrorResult`, still gets an Internal
+  error. Its log line and `InvalidResultError` message now say "Return a value,
+  Success(value) or Error(code, message)", and the log line links the Methods
+  page.
+
 ## 5.0.10 (2026-11-06)
 
 The first release since the project moved to

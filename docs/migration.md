@@ -1,5 +1,5 @@
 ---
-description: Upgrade jsonrpcserver from 4.x to 5.x, and from 5.0.9 to 5.0.10. Side-by-side examples, removed options, and the plain return value that silently becomes an Internal error.
+description: Upgrade jsonrpcserver from 4.x to 5.x, from 5.0.9 to 5.0.10, and to 5.1.0. Side-by-side examples, removed options, and plain return values, which work again from 5.1.0.
 ---
 
 # Migration
@@ -9,9 +9,10 @@ description: Upgrade jsonrpcserver from 4.x to 5.x, and from 5.0.9 to 5.0.10. Si
 Version 5 changed how methods report their result. Most other code needs only
 small changes.
 
-!!! danger "Old methods fail with no details"
-    In 4.x a method returned its result directly. In 5.x it must return
-    `Success(result)`. A 4.x method such as
+!!! danger "Old methods fail with no details before 5.1.0"
+    In 4.x a method returned its result directly. In 5.0.x it must return
+    `Success(result)`. From 5.1.0 a plain return value works again, and
+    becomes `Success(value)`. On 5.0.x, a 4.x method such as
 
     <!-- skip: 4.x code -->
     ```python
@@ -27,6 +28,9 @@ small changes.
     ```text
     Method 'ping' returned 'pong', which is not a Result, so the client got an Internal error. Return Success(value) or Error(code, message). ...
     ```
+
+    That's the 5.0.10 message. Upgrading to 5.1.0 fixes these methods
+    without a code change.
 
     If you don't see that line, configure logging (see
     [Errors and logging](errors.md#logging)). Then search your code for
@@ -85,7 +89,7 @@ print(response, 200 if response else 204)
 
 | 4.x | 5.x |
 |---|---|
-| `return value` | `return Success(value)` |
+| `return value` | `return Success(value)`. From 5.1.0 `return value` works too |
 | `raise ApiError(message, code=1, data=...)` | `return Error(code, message, data)`, or `raise JsonRpcError(code, message, data)`. Note the order: code first. |
 | `raise InvalidParamsError(...)` | `return InvalidParams(data)` |
 | `raise MethodNotFoundError` | there's no equivalent. jsonrpcserver sends "Method not found" itself |
@@ -103,7 +107,7 @@ print(response, 200 if response else 204)
 Code written for 4.x that 5.x can't run gives clear errors in most cases. The
 removed keywords raise `TypeError`, and `response.wanted` raises
 `AttributeError: 'str' object has no attribute 'wanted'`. The plain return
-value above is the one that fails quietly, and `str(response)` still works but
+value above is the one that fails quietly before 5.1.0, and `str(response)` still works but
 is no longer needed.
 
 The 4.x documentation is no longer online. The [changelog](changelog.md)
