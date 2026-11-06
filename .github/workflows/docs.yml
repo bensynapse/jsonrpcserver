@@ -3,9 +3,11 @@ name: Docs
 # The site describes the release on PyPI, so it deploys when a release tag is
 # pushed, not on every merge to main. To publish a docs-only fix between
 # releases, run this workflow by hand on main (Actions, Docs, Run workflow).
+# A pre-release tag (v6.0.0rc1, v6.0.0b1, v6.0.0a1) doesn't deploy, so the site
+# keeps describing the version that pip installs by default.
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*", "!v*rc*", "!v*a[0-9]*", "!v*b[0-9]*"]
   workflow_dispatch:
 
 permissions:
