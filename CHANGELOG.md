@@ -1,10 +1,12 @@
 # Changelog
 
-## 6.0.0 (not released yet)
+## 6.0.0rc1 (2026-11-06)
 
-6.0 is in development on main. [plans/6.0.md](https://github.com/bensynapse/jsonrpcserver/blob/main/plans/6.0.md)
-lists what changes, and [#320](https://github.com/bensynapse/jsonrpcserver/issues/320) tracks it. 5.x gets fixes
-on the `release/5.x` branch.
+The first release candidate of 6.0. `pip install --pre jsonrpcserver` installs
+it. `pip install jsonrpcserver` keeps installing 5.x until 6.0.0.
+[Migration](https://bensynapse.github.io/jsonrpcserver/migration/#from-5x-to-60)
+lists what changes, and [#320](https://github.com/bensynapse/jsonrpcserver/issues/320)
+tracks the release. 5.x gets fixes on the `release/5.x` branch.
 
 ### Added
 

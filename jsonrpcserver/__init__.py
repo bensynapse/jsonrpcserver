@@ -38,5 +38,5 @@ from .methods import method
 from .result import Error, InvalidParams, Result, Success
 from .server import serve
 
-__version__ = "6.0.0.dev0"
+__version__ = "6.0.0rc1"
 """The version of jsonrpcserver, as a string. Added in 5.0.10."""

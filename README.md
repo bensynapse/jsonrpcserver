@@ -51,7 +51,8 @@ pip install jsonrpcserver
 ```
 
 If you're on 5.0.9 or older, upgrade: those versions send exception messages
-to clients. Main is 6.0, which isn't released yet. The
+to clients. 6.0 is a release candidate: `pip install --pre jsonrpcserver`
+installs it. The
 [migration guide](https://bensynapse.github.io/jsonrpcserver/migration/#from-5x-to-60)
 lists what changes from 5.x.
 

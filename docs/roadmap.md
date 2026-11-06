@@ -34,11 +34,13 @@ These change behaviour or remove things, so they wait for a major version.
   dispatch functions take the same options. One `@method` decorator serves
   sync and async functions.
 
-**Next:**
+**Releases:**
 
 - 5.2.0, from `release/5.x`, warns where code depends on something 6.0
-  changes.
-- A release candidate, 6.0.0rc1, then 6.0.0.
+  changes. Released 6 November 2026.
+- 6.0.0rc1, the first release candidate, also 6 November 2026.
+  `pip install --pre jsonrpcserver` installs it. 6.0.0 follows once it has had
+  some use.
 
 ## Ideas under discussion
 
