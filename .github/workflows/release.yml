@@ -120,8 +120,11 @@ jobs:
             on && /^## / { exit }
             on { print }
           ' CHANGELOG.md > notes.md
+          # A version with a letter in it (6.0.0rc1) is a pre-release on PyPI too.
+          prerelease=""
+          if [[ "$version" =~ [a-z] ]]; then prerelease="--prerelease"; fi
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "$version" \
             --notes-file notes.md \
-            --verify-tag
+            --verify-tag $prerelease
