@@ -10,7 +10,7 @@ from typing import Any
 
 from .codes import ERROR_INTERNAL_ERROR, ERROR_INVALID_PARAMS, ERROR_METHOD_NOT_FOUND
 from .sentinels import NODATA
-from .utils import warn_if_invalid_error
+from .utils import check_error
 
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
 
@@ -107,9 +107,9 @@ def Error(code: int, message: str, data: Any = NODATA) -> ErrorResult:
     Returns:
         A Result holding the error.
 
-    Warns:
-        UserWarning: If `code` isn't an int or `message` isn't a str. The error is
-            still sent as given. New in 5.0.10.
+    Raises:
+        TypeError: If `code` isn't an int or `message` isn't a str. Changed in 6.0:
+            5.0.10 warned and sent the error as given.
 
     Example:
         >>> from jsonrpcserver import Error, Result, dispatch_to_serializable
@@ -119,7 +119,7 @@ def Error(code: int, message: str, data: Any = NODATA) -> ErrorResult:
         >>> dispatch_to_serializable(request, {"fail": fail})["error"]
         {'code': 1, 'message': 'It failed', 'data': {'reason': 'example'}}
     """
-    warn_if_invalid_error(code, message, stacklevel=2)
+    check_error(code, message)
     return ErrorResult(code, message, data)
 
 

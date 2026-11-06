@@ -14,7 +14,6 @@ A request's params are either a list (positional arguments) or an object (named
 arguments), not both. That's a JSON-RPC rule.
 """
 
-import warnings
 from collections.abc import Callable, Mapping
 from typing import Any, TypeVar, overload
 
@@ -74,18 +73,17 @@ def method(f: Callable[..., Any] | None = None, name: str | None = None) -> Any:
     Returns:
         The function itself, or, when called with only `name`, a decorator.
 
-    Warns:
-        UserWarning: If the name starts with "rpc.". The JSON-RPC spec reserves those
-            names. New in 5.0.10.
+    Raises:
+        ValueError: If the name starts with "rpc.". The JSON-RPC spec reserves those
+            names. Changed in 6.0: 5.0.10 warned and added the method anyway.
     """
 
     def decorator(func: F) -> F:
         method_name = func.__name__ if name is None else name
         if method_name.startswith("rpc."):
-            warnings.warn(
+            raise ValueError(
                 f"Method names starting with 'rpc.' are reserved by the JSON-RPC spec "
-                f"({method_name!r})",
-                stacklevel=3 if callable(f) else 2,
+                f"({method_name!r})"
             )
         global_methods[method_name] = func
         return func

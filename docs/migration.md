@@ -146,7 +146,7 @@ an Internal error, the error is logged, and the rest of a batch is sent.
 integer or the message isn't a string, and `@method` warns about names that
 start with `rpc.`. The responses are the same as before. If your tests turn
 warnings into errors, fix the code or the names. See
-[Errors and logging](errors.md#spec-warnings).
+[Errors and logging](errors.md#spec-errors).
 
 **Deprecated names.** In `jsonrpcserver.response`, `serialize_error`,
 `serialize_success` and `to_serializable_one` give a `DeprecationWarning`. Use

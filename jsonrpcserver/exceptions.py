@@ -3,7 +3,7 @@
 from typing import Any
 
 from .sentinels import NODATA
-from .utils import warn_if_invalid_error
+from .utils import check_error
 
 
 class JsonRpcError(Exception):
@@ -18,8 +18,9 @@ class JsonRpcError(Exception):
         data: Extra information for the client. If it isn't given, the response has
             no `data` member.
 
-    Warns:
-        UserWarning: If `code` isn't an int or `message` isn't a str. New in 5.0.10.
+    Raises:
+        TypeError: If `code` isn't an int or `message` isn't a str. Changed in 6.0:
+            5.0.10 warned instead.
 
     Example:
         >>> from jsonrpcserver import Result, dispatch_to_serializable
@@ -31,5 +32,5 @@ class JsonRpcError(Exception):
     """
 
     def __init__(self, code: int, message: str, data: Any = NODATA):
-        warn_if_invalid_error(code, message, stacklevel=2)
+        check_error(code, message)
         self.code, self.message, self.data = (code, message, data)

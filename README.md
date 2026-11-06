@@ -37,7 +37,7 @@ have.
 - Follows the spec for batches, notifications and errors, and checks each
   request's params against your function's signature.
 - Keeps exception messages out of responses and in your logs, and limits
-  batch size with `max_batch_size` (from 5.0.10).
+  batches to 100 requests by default (`max_batch_size`).
 - Typed: ships `py.typed`, and `@method` keeps your functions' signatures for
   mypy and pyright.
 - Safe to call from several threads, and tested on Python 3.11 to 3.14,

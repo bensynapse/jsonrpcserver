@@ -104,8 +104,8 @@ array:
 ## Limit the batch size
 
 A client can put thousands of requests in one batch, and each one is
-validated and run. Set `max_batch_size` on every dispatch call on a server
-that strangers can reach:
+validated and run. So every dispatch function limits a batch to 100 requests
+by default. Pass `max_batch_size` to lower or raise the limit:
 
 ```pycon
 >>> big_batch = (
@@ -116,8 +116,8 @@ that strangers can reach:
 ```
 
 A batch over the limit gets one error response, and none of its requests run.
-A single request that isn't in a batch is never affected. The default,
-`None`, means no limit.
+A single request that isn't in a batch is never affected. `None` means no
+limit.
 
 `max_batch_size` must be `None` or a positive `int`. Anything else, including
 `0`, `True`, `1.5` or `"100"`, raises `ValueError` when you call `dispatch`:
@@ -129,7 +129,7 @@ Traceback (most recent call last):
 ValueError: max_batch_size must be a positive int or None, not 0
 ```
 
-!!! info "New in 5.0.10"
-    `max_batch_size`. On 5.0.9, limit the size of the request body in your
-    web server instead. [Security](security.md#limit-batch-size) explains
-    why both matter.
+!!! info "New in 5.0.10, changed in 6.0"
+    `max_batch_size` is new in 5.0.10, where the default was no limit. 6.0
+    turned the limit on, at 100. [Security](security.md#limit-batch-size)
+    explains why you should also limit the size of the request body.

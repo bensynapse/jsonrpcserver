@@ -37,9 +37,9 @@ A later `@method` with the same name replaces the earlier one, without a
 warning. If you'd rather not use a decorator, pass the methods to `dispatch`
 yourself as a dict. See [methods](dispatch.md#methods) on the Dispatch page.
 
-!!! info "New in 5.0.10"
-    A name that starts with `rpc.` gives a `UserWarning`, because the
-    JSON-RPC spec reserves those names. The method is still added.
+!!! info "Changed in 6.0"
+    A name that starts with `rpc.` raises `ValueError`, because the JSON-RPC
+    spec reserves those names. 5.0.10 warned and added the method anyway.
 
 ## Results
 
@@ -93,10 +93,10 @@ The spec says the code must be an integer and the message should be a string.
 The spec reserves the codes from -32768 to -32000 for its own errors, so pick
 other numbers for yours.
 
-!!! info "New in 5.0.10"
-    `Error` and `JsonRpcError` give a `UserWarning` if the code isn't an
-    integer or the message isn't a string. The error is still sent as given,
-    so existing code keeps working, but some clients can't read it.
+!!! info "Changed in 6.0"
+    `Error` and `JsonRpcError` raise `TypeError` if the code isn't an integer
+    or the message isn't a string. 5.0.10 warned and sent the error as given,
+    which some clients can't read.
 
 You can also raise `JsonRpcError`, which takes the same arguments as `Error`.
 That's handy deep inside other functions:

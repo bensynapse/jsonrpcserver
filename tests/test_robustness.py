@@ -132,8 +132,35 @@ def test_nan_allowed_with_plain_json_dumps() -> None:
     assert response == '{"jsonrpc": "2.0", "result": NaN, "id": 1}'
 
 
-def test_infinite_id_gets_null_id() -> None:
+def test_infinite_id_is_a_parse_error() -> None:
+    """6.0's default deserializer rejects numbers too big for a float."""
     response = dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1e400}', METHODS)
+    assert json.loads(response) == {
+        "jsonrpc": "2.0",
+        "error": {"code": -32700, "message": "Parse error", "data": "1e400 is too big"},
+        "id": None,
+    }
+
+
+@pytest.mark.parametrize("constant", ["NaN", "Infinity", "-Infinity"])
+def test_non_json_constants_are_a_parse_error(constant: str) -> None:
+    request = (
+        '{"jsonrpc": "2.0", "method": "ping", "params": [' + constant + '], "id": 1}'
+    )
+    assert json.loads(dispatch(request, METHODS))["error"] == {
+        "code": -32700,
+        "message": "Parse error",
+        "data": f"{constant} is not valid JSON",
+    }
+
+
+def test_infinite_id_with_json_loads_gets_null_id() -> None:
+    """A deserializer that lets 1e400 through still gets a valid response."""
+    response = dispatch(
+        '{"jsonrpc": "2.0", "method": "ping", "id": 1e400}',
+        METHODS,
+        deserializer=json.loads,
+    )
     assert json.loads(response) == {
         "jsonrpc": "2.0",
         "error": INTERNAL_ERROR,

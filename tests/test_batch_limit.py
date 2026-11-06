@@ -46,8 +46,18 @@ def reset_calls() -> None:
     calls.clear()
 
 
-def test_no_limit_by_default() -> None:
-    assert len(json.loads(dispatch(batch(500), {"ping": ping}))) == 500
+def test_limit_is_100_by_default() -> None:
+    """6.0 turns the limit on (plans/6.0.md, D5)."""
+    assert len(json.loads(dispatch(batch(100), {"ping": ping}))) == 100
+    calls.clear()
+    response = json.loads(dispatch(batch(101), {"ping": ping}))
+    assert response["error"]["data"] == "The batch has 101 requests. The limit is 100."
+    assert calls == []
+
+
+def test_none_turns_the_limit_off() -> None:
+    response = dispatch(batch(500), {"ping": ping}, max_batch_size=None)
+    assert len(json.loads(response)) == 500
 
 
 def test_at_the_limit() -> None:
