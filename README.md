@@ -53,7 +53,7 @@ pip install jsonrpcserver
 If you're on 5.0.9 or older, upgrade: those versions send exception messages
 to clients. 6.0 is a release candidate: `pip install --pre jsonrpcserver`
 installs it. The
-[migration guide](https://bensynapse.github.io/jsonrpcserver/migration/#from-5x-to-60)
+[migration guide](https://bensynapse.github.io/jsonrpcserver/6.0/migration/#from-5x-to-60)
 lists what changes from 5.x.
 
 ## Quickstart
@@ -102,12 +102,14 @@ explains why.
 - [Documentation](https://bensynapse.github.io/jsonrpcserver/): guides,
   framework examples and the
   [API reference](https://bensynapse.github.io/jsonrpcserver/reference/).
+  The menu next to the title switches between the docs for 5.x and 6.0.
 - [Migrating from 4.x](https://bensynapse.github.io/jsonrpcserver/migration/):
   methods return `Success(value)` or `Error(...)`. From 5.1.0 a method can also
   return a plain value, as in 4.x.
 - [Contributing](https://github.com/bensynapse/jsonrpcserver/blob/main/CONTRIBUTING.md)
   and the
-  [security policy](https://github.com/bensynapse/jsonrpcserver/blob/main/SECURITY.md).
+  [security policy](https://github.com/bensynapse/jsonrpcserver/blob/main/SECURITY.md),
+  which says which versions get fixes.
 - [License](https://github.com/bensynapse/jsonrpcserver/blob/main/LICENSE): MIT.
 
 ## See also

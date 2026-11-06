@@ -11,10 +11,15 @@ and dark mode at desktop and phone widths. It fails if:
   description or canonical link,
 - a link to another page of the site, or to an anchor on it, is broken.
 
+On the versioned site from build_versions.py (SITE_DIR has a versions.json),
+it also opens the home page of each version folder. Then every page must show
+the version menu, and each version other than the stable one a notice.
+
 Needs playwright (pip install playwright, then playwright install chromium).
 """
 
 import functools
+import json
 import re
 import sys
 import threading
@@ -79,6 +84,8 @@ def page_info(page: Page) -> dict[str, Any]:
           h1: h1.length,
           description: (q('meta[name="description"]') || {}).content || "",
           canonical: (q('link[rel="canonical"]') || {}).href || "",
+          menu: !!q(".md-version"),
+          notice: !!q("[data-version-notice]"),
           overflow: doc.scrollWidth > doc.clientWidth,
           links: [...document.querySelectorAll("a[href]")].map((a) => a.href),
           ids: [...document.querySelectorAll("[id]")].map((e) => e.id),
@@ -113,6 +120,14 @@ def main(site: Path, axe: str) -> int:
     sitemap = (site / "sitemap.xml").read_text()
     urls = re.findall(r"<loc>(.*?)</loc>", sitemap)
     pages = [url.replace(LIVE, BASE) for url in urls]
+    versioned = (site / "versions.json").exists()
+    # Version folders whose pages must carry the notice: all but the stable one.
+    notice: dict[str, bool] = {}
+    if versioned:
+        for version in json.loads((site / "versions.json").read_text()):
+            url = BASE + version["version"] + "/"
+            pages.append(url)
+            notice[url] = "stable" not in version["aliases"]
     problems: list[str] = []
     links: set[str] = set()
     ids: dict[str, set[str]] = {}
@@ -143,6 +158,11 @@ def main(site: Path, axe: str) -> int:
                         problems.append(f"{where}: no description")
                     if expected == 200 and not info["canonical"]:
                         problems.append(f"{where}: no canonical link")
+                    if versioned and expected == 200 and not info["menu"]:
+                        problems.append(f"{where}: no version menu")
+                    folder = next((f for f in notice if url.startswith(f)), None)
+                    if versioned and info["notice"] != bool(folder and notice[folder]):
+                        problems.append(f"{where}: version notice shown wrongly")
                     if info["overflow"]:
                         problems.append(f"{where}: the page scrolls sideways")
                     problems.extend(f"{where}: JavaScript error {e}" for e in errors)
