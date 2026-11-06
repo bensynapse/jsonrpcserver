@@ -55,7 +55,7 @@ jobs:
         run: python .github/scripts/build_versions.py site --from-branch "$FROM_BRANCH"
       # The same browser check as CI's site job, on the assembled site. It also
       # checks the version menu, the notice and every version's home page.
-      - run: python -m playwright install --with-deps chromium
+      - run: python -m playwright install chromium
       - name: Download axe-core and check its hash
         env:
           AXE_VERSION: "4.14.0"
