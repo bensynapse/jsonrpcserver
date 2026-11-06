@@ -105,7 +105,8 @@ explains why.
   return a plain value, as in 4.x.
 - [Contributing](https://github.com/bensynapse/jsonrpcserver/blob/main/CONTRIBUTING.md)
   and the
-  [security policy](https://github.com/bensynapse/jsonrpcserver/blob/main/SECURITY.md).
+  [security policy](https://github.com/bensynapse/jsonrpcserver/blob/main/SECURITY.md),
+  which says which versions get fixes.
 - [License](https://github.com/bensynapse/jsonrpcserver/blob/main/LICENSE): MIT.
 
 ## See also
