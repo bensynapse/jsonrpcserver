@@ -18,8 +18,9 @@ from jsonrpcserver.server import RequestHandler, listening_message, serve
 
 @patch("jsonrpcserver.server.ThreadingHTTPServer")
 def test_serve(server: Mock) -> None:
+    """6.0 listens on localhost unless told otherwise (plans/6.0.md, D11)."""
     serve()
-    server.assert_called_once_with(("", 5000), RequestHandler)
+    server.assert_called_once_with(("localhost", 5000), RequestHandler)
     server.return_value.serve_forever.assert_called_once_with()
     server.return_value.server_close.assert_called_once_with()
 

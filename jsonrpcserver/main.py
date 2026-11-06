@@ -31,10 +31,6 @@ from .response import (
     Response,
     to_dict,
 )
-from .response import (
-    # Importable from here in 5.0.9. The "as" form marks it as a re-export.
-    to_serializable_one as to_serializable_one,
-)
 from .sentinels import NOCONTEXT, NODATA
 from .utils import identity
 from .validator import default_validator as default_validator

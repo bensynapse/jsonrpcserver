@@ -171,22 +171,22 @@ response = dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}', METHODS)
 ## The built-in server is for development
 
 `serve()` is a small server built on Python's `http.server`. It has no TLS,
-no authentication and no request size limit, and it doesn't set
-`max_batch_size`. Use it to try things out, and put `dispatch` behind a real
-web server or framework in production. The [examples](examples.md) show how.
+no authentication and no request size limit. Use it to try things out, and put
+`dispatch` behind a real web server or framework in production. The
+[examples](examples.md) show how.
 
-By default, `serve()` listens on every network interface, so anyone who can
-reach your machine can call your methods. Pass `"localhost"` to accept only
-local connections, as in `serve("localhost", 8000)`. From 5.0.10 it says where
-it's listening when it starts, including a note when that's every interface.
+From 6.0, `serve()` accepts only local connections unless you pass a host.
+`serve("", 8000)` listens on every network interface, so anyone who can reach
+your machine can call your methods, and it says so when it starts. 5.x
+listened on every interface by default.
 
 ## Strict JSON
 
-Python's `json` module accepts `NaN`, `Infinity` and numbers like `1e400` in a
-request, which aren't valid JSON. [Validation](validation.md#nan-infinity-and-huge-numbers)
-shows a stricter `deserializer` that rejects them. From 5.0.10, `dispatch`
-and `async_dispatch` never write them with the default serializer: they send
-an Internal error instead. `dispatch_to_serializable` gives you the float as
+`NaN`, `Infinity` and numbers like `1e400` aren't valid JSON. From 6.0 the
+default deserializer rejects them in requests, with a Parse error (see
+[Validation](validation.md#nan-infinity-and-huge-numbers)). From 5.0.10,
+`dispatch` and `async_dispatch` never write them with the default serializer:
+they send an Internal error instead. `dispatch_to_serializable` gives you the float as
 it is, so if your framework serializes the dict, check how it treats them.
 
 ## Reporting a vulnerability

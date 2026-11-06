@@ -34,11 +34,11 @@ handles each request in its own thread. It also handles a missing
 
 Know its limits before you use it:
 
-- It listens on every network interface unless you pass a host, as the
-  example does with `"localhost"`. With `serve()` and no arguments, anyone
-  who can reach your machine on port 5000 can call your methods.
-- It has no TLS, no authentication and no limit on the body size, and it
-  doesn't set `max_batch_size`.
+- It accepts only local connections unless you pass a host. With
+  `serve("")`, anyone who can reach your machine on port 5000 can call your
+  methods. 5.x listened on every interface by default.
+- It has no TLS, no authentication and no limit on the body size. Batches
+  get `dispatch`'s default limit of 100 requests.
 - It says where it's listening when it starts (new in 5.0.10). Each request
   is logged on the `jsonrpcserver.server` logger at INFO level, so
   `logging.basicConfig(level=logging.INFO)` shows them.
