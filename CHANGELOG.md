@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The `test` extra now includes jsonschema, which `tests/test_validator.py`
+  needs. `pip install -e ".[test]"` was enough to install the package but not
+  to run its tests.
+
 ## 6.0.0rc1 (2026-11-06)
 
 The first release candidate of 6.0. `pip install --pre jsonrpcserver` installs
