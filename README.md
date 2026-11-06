@@ -42,6 +42,7 @@ have.
   mypy and pyright.
 - Safe to call from several threads, and tested on Python 3.11 to 3.14,
   including free-threaded 3.14t.
+- No dependencies, from 6.0.
 
 ## Install
 
@@ -50,9 +51,9 @@ pip install jsonrpcserver
 ```
 
 If you're on 5.0.9 or older, upgrade: those versions send exception messages
-to clients. The
-[changelog](https://bensynapse.github.io/jsonrpcserver/changelog/) lists what
-changed in 5.0.10.
+to clients. Main is 6.0, which isn't released yet. The
+[migration guide](https://bensynapse.github.io/jsonrpcserver/migration/#from-5x-to-60)
+lists what changes from 5.x.
 
 ## Quickstart
 
