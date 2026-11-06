@@ -90,8 +90,10 @@ whose version reached PyPI.
 
 ## Docs
 
-The docs site deploys from `.github/workflows/docs.yml` when a release tag is
-pushed, so it always describes the version on PyPI. To publish a docs-only fix
-between releases, run the Docs workflow by hand on main. If main is ahead of
-PyPI by then, set `unreleased` in mkdocs.yml first, so a banner says so.
+The docs site has one copy of the docs per release line. The Docs workflow on
+main builds every line from its newest release tag and deploys them together.
+Pushing a 5.x tag runs `.github/workflows/docs.yml` here, which starts that
+workflow on main. So a 5.x release updates the 5.x docs and keeps the 6.0
+docs. The "Docs" section of RELEASING.md on main has the rest, including how
+to publish a docs-only fix between releases.
 The docs also mark features with "New in" or "Changed in" notes.

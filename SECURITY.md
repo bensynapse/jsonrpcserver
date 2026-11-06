@@ -11,7 +11,19 @@ problem. We'll reply within a week.
 
 ## Supported versions
 
-Fixes go into the latest 5.x release. Older releases don't get updates.
+| Version | Gets fixes |
+|---|---|
+| 6.x | Yes, once 6.0.0 is out. Until then, its release candidates get fixes. |
+| 5.x | Yes, until 6.0.0 is out. Then security fixes for 12 months. |
+| 4.x and older | No |
+
+Until 6.0.0 is released, 5.x is the supported line. Fixes go into the latest
+5.x release, and into the next 6.0 release candidate.
+
+Once 6.0.0 is out, fixes go into the latest 6.x release. 5.x keeps getting
+security fixes in a new 5.x release for 12 months after the 6.0.0 release
+date. Other 5.x bug fixes are at our discretion. Only the latest release of
+each line gets fixes, so upgrade within the line first.
 
 Versions 5.0.0 to 5.0.9 send the message of any uncaught exception in a
 method to the client. 5.0.10 fixes this, so please upgrade. If you can't yet,
