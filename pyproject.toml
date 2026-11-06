@@ -46,6 +46,7 @@ Changelog = "https://bensynapse.github.io/jsonrpcserver/changelog/"
 [project.optional-dependencies]
 test = [
     "hypothesis",
+    "jsonschema",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
