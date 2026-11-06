@@ -6,7 +6,6 @@ from typing import Any
 from unittest.mock import sentinel
 
 import pytest
-from oslash.either import Left, Right
 
 from jsonrpcserver.response import (
     ErrorResponse,
@@ -71,7 +70,7 @@ def test_ServerErrorResponse() -> None:
 
 
 def test_to_serializable() -> None:
-    assert to_serializable(Right(SuccessResponse(sentinel.result, sentinel.id))) == {
+    assert to_serializable(SuccessResponse(sentinel.result, sentinel.id)) == {
         "jsonrpc": "2.0",
         "result": sentinel.result,
         "id": sentinel.id,
@@ -83,7 +82,7 @@ def test_to_serializable_None() -> None:
 
 
 def test_to_serializable_SuccessResponse() -> None:
-    assert to_serializable(Right(SuccessResponse(sentinel.result, sentinel.id))) == {
+    assert to_serializable(SuccessResponse(sentinel.result, sentinel.id)) == {
         "jsonrpc": "2.0",
         "result": sentinel.result,
         "id": sentinel.id,
@@ -92,7 +91,7 @@ def test_to_serializable_SuccessResponse() -> None:
 
 def test_to_serializable_ErrorResponse() -> None:
     assert to_serializable(
-        Left(ErrorResponse(sentinel.code, sentinel.message, sentinel.data, sentinel.id))
+        ErrorResponse(sentinel.code, sentinel.message, sentinel.data, sentinel.id)
     ) == {
         "jsonrpc": "2.0",
         "error": {
@@ -105,7 +104,7 @@ def test_to_serializable_ErrorResponse() -> None:
 
 
 def test_to_serializable_list() -> None:
-    assert to_serializable([Right(SuccessResponse(sentinel.result, sentinel.id))]) == [
+    assert to_serializable([SuccessResponse(sentinel.result, sentinel.id)]) == [
         {
             "jsonrpc": "2.0",
             "result": sentinel.result,
@@ -125,7 +124,7 @@ def test_to_serializable_list() -> None:
         (
             "to_serializable_one",
             "to_dict",
-            Right[SuccessResponse, ErrorResponse](SuccessResponse("foo", 1)),
+            SuccessResponse("foo", 1),
         ),
     ],
 )
@@ -143,7 +142,7 @@ def test_to_serializable_one_importable_from_main() -> None:
     from jsonrpcserver.main import to_serializable_one
 
     with pytest.warns(DeprecationWarning):
-        assert to_serializable_one(Left(ErrorResponse(1, "foo", NODATA, 1))) == {
+        assert to_serializable_one(ErrorResponse(1, "foo", NODATA, 1)) == {
             "jsonrpc": "2.0",
             "error": {"code": 1, "message": "foo"},
             "id": 1,

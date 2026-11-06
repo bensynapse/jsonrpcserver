@@ -78,7 +78,7 @@ def test_single_request_ignores_limit() -> None:
 
 def test_dispatch_to_response_over_the_limit() -> None:
     response: Any = dispatch_to_response(batch(3), {"ping": ping}, max_batch_size=2)
-    assert response._error.code == -32600
+    assert response.code == -32600
 
 
 @pytest.mark.asyncio

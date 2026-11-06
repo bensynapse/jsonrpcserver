@@ -6,7 +6,6 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from oslash.either import Left, Right
 
 from jsonrpcserver.async_dispatcher import (
     call,
@@ -42,7 +41,7 @@ def sync_ping() -> Result:
 
 @pytest.mark.asyncio
 async def test_call() -> None:
-    assert await call(Request("ping", [], 1), NOCONTEXT, ping) == Right(
+    assert await call(Request("ping", [], 1), NOCONTEXT, ping) == (
         SuccessResult("pong")
     )
 
@@ -52,7 +51,7 @@ async def test_call_raising_jsonrpcerror() -> None:
     def method() -> None:
         raise JsonRpcError(code=1, message="foo", data=NODATA)
 
-    assert await call(Request("ping", [], 1), NOCONTEXT, method) == Left(
+    assert await call(Request("ping", [], 1), NOCONTEXT, method) == (
         ErrorResult(1, "foo")
     )
 
@@ -64,7 +63,7 @@ async def test_call_raising_exception() -> None:
     def method() -> None:
         raise ValueError("foo")
 
-    assert await call(Request("ping", [], 1), NOCONTEXT, method) == Left(
+    assert await call(Request("ping", [], 1), NOCONTEXT, method) == (
         ErrorResult(ERROR_INTERNAL_ERROR, "Internal error", NODATA)
     )
 
@@ -74,7 +73,7 @@ async def test_call_raising_exception_debug() -> None:
     def method() -> None:
         raise ValueError("foo")
 
-    assert await call(Request("ping", [], 1), NOCONTEXT, method, debug=True) == Left(
+    assert await call(Request("ping", [], 1), NOCONTEXT, method, debug=True) == (
         ErrorResult(ERROR_INTERNAL_ERROR, "Internal error", "foo")
     )
 
@@ -99,25 +98,9 @@ async def test_plain_return_value_becomes_success() -> None:
     async def method() -> str:
         return "pong"
 
-    assert await call(Request("ping", [], 1), NOCONTEXT, method) == Right(
+    assert await call(Request("ping", [], 1), NOCONTEXT, method) == (
         SuccessResult("pong")
     )
-
-
-@pytest.mark.asyncio
-async def test_invalid_result_is_logged_with_a_hint(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    async def method() -> object:
-        return Right[str, Any]("pong")
-
-    assert await call(Request("ping", [], 1), NOCONTEXT, method) == Left(
-        ErrorResult(ERROR_INTERNAL_ERROR, "Internal error")
-    )
-    (record,) = caplog.records
-    assert record.name == "jsonrpcserver.async_dispatcher"
-    assert record.exc_info is None
-    assert "which is not a valid Result" in record.getMessage()
 
 
 @pytest.mark.asyncio
@@ -125,7 +108,7 @@ async def test_dispatch_request() -> None:
     request = Request("ping", [], 1)
     assert await dispatch_request({"ping": ping}, NOCONTEXT, request) == (
         request,
-        Right(SuccessResult("pong")),
+        SuccessResult("pong"),
     )
 
 
@@ -134,8 +117,17 @@ async def test_dispatch_request_method_not_found() -> None:
     request = Request("nope", [], 1)
     assert await dispatch_request({"ping": ping}, NOCONTEXT, request) == (
         request,
-        Left(ErrorResult(ERROR_METHOD_NOT_FOUND, "Method not found", "nope")),
+        ErrorResult(ERROR_METHOD_NOT_FOUND, "Method not found", "nope"),
     )
+
+
+@pytest.mark.asyncio
+async def test_dispatch_request_invalid_params() -> None:
+    request = Request("ping", [1], 1)
+    request_, result = await dispatch_request({"ping": ping}, NOCONTEXT, request)
+    assert request_ == request
+    assert isinstance(result, ErrorResult)
+    assert (result.code, result.message) == (-32602, "Invalid params")
 
 
 @pytest.mark.asyncio
@@ -145,7 +137,7 @@ async def test_dispatch_deserialized() -> None:
         NOCONTEXT,
         identity,
         {"jsonrpc": "2.0", "method": "ping", "id": 1},
-    ) == Right(SuccessResponse("pong", 1))
+    ) == SuccessResponse("pong", 1)
 
 
 @pytest.mark.asyncio
@@ -157,7 +149,7 @@ async def test_dispatch_to_response_pure_success() -> None:
         context=NOCONTEXT,
         methods={"ping": ping},
         request='{"jsonrpc": "2.0", "method": "ping", "id": 1}',
-    ) == Right(SuccessResponse("pong", 1))
+    ) == SuccessResponse("pong", 1)
 
 
 @pytest.mark.parametrize("debug,data", [(False, NODATA), (True, "foo")])
@@ -178,7 +170,7 @@ async def test_dispatch_to_response_pure_server_error(
         methods=methods,
         request='{"jsonrpc": "2.0", "method": "hello", "id": 1}',
         debug=debug,
-    ) == Left(ErrorResponse(ERROR_SERVER_ERROR, "Server error", data, None))
+    ) == ErrorResponse(ERROR_SERVER_ERROR, "Server error", data, None)
     dispatch_request.assert_called_once_with(
         methods, NOCONTEXT, Request("hello", [], 1), debug=debug
     )

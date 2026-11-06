@@ -13,7 +13,6 @@ from unittest.mock import patch
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from oslash.either import Right
 
 from jsonrpcserver import Result, Success, async_dispatch, dispatch
 from jsonrpcserver.dispatcher import NORESPONSE, dispatch_member, member_id
@@ -200,7 +199,7 @@ def test_non_dict_member_without_validator() -> None:
 
 def test_failing_post_process_reaches_the_outer_handler() -> None:
     def post_process(response: Any) -> Any:
-        if response._value.result == "boom":
+        if response.result == "boom":
             raise RuntimeError("post_process failed")
         return response
 
@@ -215,7 +214,7 @@ def test_failing_post_process_reaches_the_outer_handler() -> None:
         )
     assert dispatch_member(
         default_validator, {"ping": ping}, NOCONTEXT, post_process, request("ping", 7)
-    ) == Right(SuccessResponse("pong", 7))
+    ) == SuccessResponse("pong", 7)
 
 
 def test_dispatch_member_notification() -> None:
@@ -283,18 +282,19 @@ def test_async_method_with_sync_dispatch(recwarn: pytest.WarningsRecorder) -> No
 # python -O
 
 
-def test_invalid_result_under_optimize_flag() -> None:
-    """validate_result used assert, which python -O removes. A method that returned
-    the wrong type then broke the whole batch.
+def test_failing_member_under_optimize_flag() -> None:
+    """Some checks in the dispatcher were assert statements, which python -O removes.
+    Under -O a failing member of a batch must still fail on its own.
     """
     code = (
         "import json, logging\n"
         "logging.disable(logging.CRITICAL)\n"
         "from jsonrpcserver import dispatch, Success\n"
-        "from oslash.either import Right\n"
-        "batch = [{'jsonrpc': '2.0', 'method': 'none', 'id': 1},"
+        "def boom():\n"
+        "    raise RuntimeError('boom')\n"
+        "batch = [{'jsonrpc': '2.0', 'method': 'boom', 'id': 1},"
         " {'jsonrpc': '2.0', 'method': 'ping', 'id': 2}]\n"
-        "methods = {'none': lambda: Right(None), 'ping': lambda: Success('pong')}\n"
+        "methods = {'boom': boom, 'ping': lambda: Success('pong')}\n"
         "print(dispatch(json.dumps(batch), methods))\n"
     )
     output = subprocess.run(

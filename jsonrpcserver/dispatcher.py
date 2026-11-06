@@ -3,14 +3,11 @@ requests, providing responses.
 """
 
 import logging
-import reprlib
 from collections.abc import Callable, Iterable
 from functools import partial
 from inspect import iscoroutine, signature
 from itertools import starmap
 from typing import Any, cast
-
-from oslash.either import Either, Left, Right
 
 from .exceptions import JsonRpcError
 from .methods import AnyMethod, MethodsArgument
@@ -33,11 +30,10 @@ from .result import (
     InvalidParamsResult,
     MethodNotFoundResult,
     Result,
-    Success,
     SuccessResult,
 )
 from .sentinels import NOCONTEXT, NODATA, NOID, Sentinel
-from .utils import compose, identity, make_list, unwrap
+from .utils import compose, identity, make_list
 
 Deserialized = dict[str, Any] | list[dict[str, Any]]
 
@@ -90,10 +86,9 @@ def to_response(request: Request, result: Result) -> Response:
     # Not an assert statement, because python -O would remove it.
     if request.id is NOID:
         raise AssertionError("Can't respond to a notification")
-    if isinstance(result, Left):
-        return Left(ErrorResponse(**result._error._asdict(), id=request.id))
-    success = cast("Right[SuccessResult, ErrorResult]", result)._value
-    return Right(SuccessResponse(**success._asdict(), id=request.id))
+    if isinstance(result, ErrorResult):
+        return ErrorResponse(result.code, result.message, result.data, request.id)
+    return SuccessResponse(result.result, request.id)
 
 
 def extract_args(request: Request, context: Any) -> list[Any]:
@@ -115,70 +110,19 @@ def extract_kwargs(request: Request) -> dict[str, Any]:
     return request.params if isinstance(request.params, dict) else {}
 
 
-class InvalidResultError(AssertionError):
-    """A method returned an oslash `Left` or `Right`, or a result object, that isn't a
-    Result made by Success(...) or Error(...)."""
-
-    def __init__(self, result: object):
-        super().__init__(
-            f"The method did not return a valid Result (returned {result!r}). "
-            "Return a value, Success(value) or Error(code, message)."
-        )
-        self.result = result
-
-
-def validate_result(result: object) -> None:
-    """Validate the return value from a method.
-
-    Raises an InvalidResultError, a subclass of AssertionError, if the result returned
-    from a method is invalid.
-
-    Returns: None
-    """
-    # Not an assert statement, because python -O would remove it.
-    returned = result  # Not narrowed by the checks below.
-    error: object = getattr(result, "_error", None)
-    value: object = getattr(result, "_value", None)
-    if not (
-        (isinstance(result, Left) and isinstance(error, ErrorResult))
-        or (isinstance(result, Right) and isinstance(value, SuccessResult))
-    ):
-        raise InvalidResultError(returned)
-
-
 def to_result(result: object) -> Result:
     """The Result for what a method returned.
 
-    A plain value becomes `Success(value)`, so `return "pong"` and
-    `return Success("pong")` send the same response. A Result made by `Success` or
-    `Error` is used as it is. An oslash `Left` or `Right` that holds something else,
-    or a bare `SuccessResult` or `ErrorResult`, raises InvalidResultError, because
-    it is nearly always a mistake, not a value meant for the client.
+    `Success(...)`, `Error(...)` and `InvalidParams(...)` are used as they are. Any
+    other value becomes `Success(value)`, so `return "pong"` and
+    `return Success("pong")` send the same response.
 
-    New in 5.1.0. Before it, any plain value gave the client an Internal error.
+    New in 5.1.0. In 6.0 a Result is a `SuccessResult` or an `ErrorResult`, so there
+    is no invalid Result left to reject.
     """
-    returned = result  # Not narrowed: oslash's Left and Right are generic.
-    if isinstance(result, (Left, Right, SuccessResult, ErrorResult)):
-        validate_result(returned)
-        return cast(Result, returned)
-    return Success(result)
-
-
-def log_invalid_result(
-    method_name: str, exc: InvalidResultError, log: logging.Logger
-) -> None:
-    """Log a method that returned an invalid Result, without a traceback.
-
-    The traceback would only point into jsonrpcserver, so the message says what to
-    change instead.
-    """
-    log.error(
-        "Method %r returned %s, which is not a valid Result, so the client got an "
-        "Internal error. Return a value, Success(value) or Error(code, message): "
-        "https://bensynapse.github.io/jsonrpcserver/methods/",
-        method_name,
-        reprlib.repr(exc.result),
-    )
+    if isinstance(result, (SuccessResult, ErrorResult)):
+        return result
+    return SuccessResult(result)
 
 
 def exception_data(exc: BaseException, debug: bool) -> Any:
@@ -208,55 +152,47 @@ def call(
                 f"Method {request.method!r} is async. Use async_dispatch to call "
                 "async methods."
             )
-        # A plain value becomes Success(value). to_result raises InvalidResultError,
-        # an AssertionError, for an invalid Result, which gets an Internal error
-        # because it's a problem in the method.
-        result = to_result(result)
     # Raising JsonRpcError inside the method is an alternative way of returning an error
     # response.
     except JsonRpcError as exc:
-        return Left(ErrorResult(code=exc.code, message=exc.message, data=exc.data))
-    except InvalidResultError as exc:
-        log_invalid_result(request.method, exc, logger)
-        return Left(InternalErrorResult(exception_data(exc, debug)))
+        return ErrorResult(code=exc.code, message=exc.message, data=exc.data)
     # Any other uncaught exception inside method - internal error.
     except Exception as exc:
         logger.exception("Method %r raised an exception", request.method)
-        return Left(InternalErrorResult(exception_data(exc, debug)))
-    return result
+        return InternalErrorResult(exception_data(exc, debug))
+    # A plain value becomes Success(value).
+    return to_result(result)
 
 
 def validate_args(
     request: Request, context: Any, func: AnyMethod
-) -> Either[AnyMethod, ErrorResult]:
+) -> AnyMethod | ErrorResult:
     """Ensure the method can be called with the arguments given.
 
-    Returns: Either the function to be called, or an Invalid Params error result.
+    Returns: The function to be called, or an Invalid Params error result.
     """
     try:
         sig = signature(func)
     except ValueError:
         # Some builtins have no signature we can inspect. Call them anyway, and let
         # call() deal with a bad argument list.
-        return Right(func)
+        return func
     try:
         sig.bind(*extract_args(request, context), **extract_kwargs(request))
     except TypeError as exc:
-        return Left(InvalidParamsResult(str(exc)))
-    return Right(func)
+        return InvalidParamsResult(str(exc))
+    return func
 
 
-def get_method(
-    methods: MethodsArgument, method_name: str
-) -> Either[AnyMethod, ErrorResult]:
+def get_method(methods: MethodsArgument, method_name: str) -> AnyMethod | ErrorResult:
     """Get the requested method from the methods dict.
 
-    Returns: Either the function to be called, or a Method Not Found result.
+    Returns: The function to be called, or a Method Not Found result.
     """
     try:
-        return Right(methods[method_name])
+        return methods[method_name]
     except KeyError:
-        return Left(MethodNotFoundResult(method_name))
+        return MethodNotFoundResult(method_name)
 
 
 def dispatch_request(
@@ -268,12 +204,13 @@ def dispatch_request(
         Request. We need the ids from the original request to remove notifications
         before responding, and  create a Response.
     """
-    return (
-        request,
-        get_method(methods, request.method)
-        .bind(partial(validate_args, request, context))
-        .bind(partial(call, request, context, debug=debug)),
-    )
+    method = get_method(methods, request.method)
+    if isinstance(method, ErrorResult):
+        return request, method
+    checked = validate_args(request, context, method)
+    if isinstance(checked, ErrorResult):
+        return request, checked
+    return request, call(request, context, checked, debug=debug)
 
 
 def create_request(request: dict[str, Any]) -> Request:
@@ -317,12 +254,12 @@ def dispatch_deserialized(
 
 def validate_request(
     validator: Callable[[Deserialized], object], request: Deserialized
-) -> Either[Deserialized, ErrorResponse]:
+) -> Deserialized | ErrorResponse:
     """Validate the request against a JSON-RPC schema.
 
     Ensures the parsed request is valid JSON-RPC.
 
-    Returns: Either the same request passed in or an Invalid request response.
+    Returns: The same request passed in, or an Invalid request response.
     """
     try:
         validator(request)
@@ -330,24 +267,24 @@ def validate_request(
     # unknown. Any exception raised we assume the request is invalid and  return an
     # "invalid request" response.
     except Exception:
-        return Left(InvalidRequestResponse("The request failed schema validation"))
-    return Right(request)
+        return InvalidRequestResponse("The request failed schema validation")
+    return request
 
 
 def deserialize_request(
     deserializer: Callable[[str], Deserialized], request: str
-) -> Either[Deserialized, ErrorResponse]:
+) -> Deserialized | ErrorResponse:
     """Parse the JSON request string.
 
-    Returns: Either the deserialized request or a "Parse Error" response.
+    Returns: The deserialized request, or a "Parse Error" response.
     """
     try:
-        return Right(deserializer(request))
+        return deserializer(request)
     # Since the deserializer is unknown, the specific exception that will be raised is
     # also unknown. Any exception raised we assume the request is invalid, return a
     # parse error response.
     except Exception as exc:
-        return Left(ParseErrorResponse(str(exc)))
+        return ParseErrorResponse(str(exc))
 
 
 def dispatch_single(
@@ -359,13 +296,13 @@ def dispatch_single(
 ) -> Response | None:
     """Validate and dispatch one member of a batch."""
     if isinstance(deserialized, list):
-        return Left(InvalidRequestResponse("The request failed schema validation"))
+        return InvalidRequestResponse("The request failed schema validation")
     result = validate_request(validator, deserialized)
-    if isinstance(result, Left):
-        return Left(result._error)
+    if isinstance(result, ErrorResponse):
+        return result
     return cast(
         Response | None,
-        dispatch_deserialized(methods, context, identity, unwrap(result), debug=debug),
+        dispatch_deserialized(methods, context, identity, result, debug=debug),
     )
 
 
@@ -418,9 +355,7 @@ def dispatch_member(
         response = dispatch_single(validator, methods, context, member, debug=debug)
     except Exception as exc:
         logger.exception("Error while dispatching a member of a batch")
-        response = Left(
-            ServerErrorResponse(exception_data(exc, debug), member_id(member))
-        )
+        response = ServerErrorResponse(exception_data(exc, debug), member_id(member))
     return NORESPONSE if response is None else post_process(response)
 
 
@@ -450,13 +385,13 @@ def dispatch_to_response_pure(
     """
     try:
         parsed = deserialize_request(deserializer, request)
-        if isinstance(parsed, Left):
-            return post_process(Left(parsed._error))
-        deserialized = unwrap(parsed)
+        if isinstance(parsed, ErrorResponse):
+            return post_process(parsed)
+        deserialized = parsed
         if isinstance(deserialized, list) and deserialized:
             if max_batch_size is not None and len(deserialized) > max_batch_size:
                 return post_process(
-                    Left(BatchTooLargeResponse(len(deserialized), max_batch_size))
+                    BatchTooLargeResponse(len(deserialized), max_batch_size)
                 )
             responses = [
                 dispatch_member(
@@ -468,12 +403,12 @@ def dispatch_to_response_pure(
                 True, [response for response in responses if response is not NORESPONSE]
             )
         validated = validate_request(validator, deserialized)
-        if isinstance(validated, Left):
-            return post_process(Left(validated._error))
+        if isinstance(validated, ErrorResponse):
+            return post_process(validated)
         return dispatch_deserialized(
-            methods, context, post_process, unwrap(validated), debug=debug
+            methods, context, post_process, validated, debug=debug
         )
     except Exception as exc:
         # There was an error with the jsonrpcserver library.
         logger.exception("Error while dispatching the request")
-        return post_process(Left(ServerErrorResponse(exception_data(exc, debug), None)))
+        return post_process(ServerErrorResponse(exception_data(exc, debug), None))

@@ -1,5 +1,5 @@
 ---
-description: Type checking jsonrpcserver code with mypy and pyright. What Result is, why mypy needs one setting for oslash, and how @method keeps your function's signature.
+description: Type checking jsonrpcserver code with mypy and pyright. What Result is, and how @method keeps your function's signature.
 ---
 
 # Typing
@@ -36,38 +36,29 @@ matters.
 
 ## What Result is
 
-`Result` is the return type of a method. `Success`, `Error` and
-`InvalidParams` all return one. It comes from the
-[oslash](https://pypi.org/project/oslash/) library: it's an `Either`, a
-`Right` holding a `SuccessResult` or a `Left` holding an `ErrorResult`. You
-don't need to look inside it. Return it, and annotate your methods with it.
+`Result` is the return type of a method: `SuccessResult | ErrorResult`.
+`Success` returns a `SuccessResult`, and `Error` and `InvalidParams` return an
+`ErrorResult`. Both are frozen dataclasses.
 
 ```pycon
 >>> from jsonrpcserver import Error, Success
->>> from oslash.either import Left, Right
->>> isinstance(Success("pong"), Right)
-True
->>> isinstance(Error(1, "Failed"), Left)
+>>> from jsonrpcserver.result import ErrorResult
+>>> Success("pong")
+SuccessResult('pong')
+>>> isinstance(Error(1, "Failed"), ErrorResult)
 True
 ```
 
-The [Dispatch](dispatch.md#dispatch_to_response) page shows how to read the
-`Response` objects that `dispatch_to_response` gives, which work the same
-way. The [roadmap](roadmap.md) plans to replace oslash in 6.0.
+A method can also return a plain value, which is sent as the result. Annotate
+it with the value's type, or with `Result` if it can return an error too.
 
-## mypy needs one setting
+The [Dispatch](dispatch.md#dispatch_to_response) page shows the `Response`
+objects that `dispatch_to_response` gives, which work the same way.
 
-oslash has type hints but no `py.typed` marker. pyright reads them anyway.
-mypy treats `Result` as `Any` unless you add this to `pyproject.toml`:
-
-```toml
-[[tool.mypy.overrides]]
-module = ["oslash", "oslash.*"]
-follow_untyped_imports = true
-```
-
-Without it, mypy can't tell a method that returns `Success(...)` from one that
-returns a plain value, which would give an Internal error at run time.
+!!! info "Changed in 6.0"
+    5.x built `Result` on the oslash library, and mypy needed a setting to
+    read its types. jsonrpcserver has no dependencies now, so mypy and pyright
+    need no settings.
 
 ## Async methods
 

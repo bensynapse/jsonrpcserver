@@ -207,36 +207,35 @@ It gives `Response` objects, or `None` for a notification. Use it to look at
 or change responses before they're serialized. It also takes a `post_process`
 function, which is applied to each response.
 
-A `Response` comes from the [oslash](https://pypi.org/project/oslash/)
-library. It's a `Right` holding a `SuccessResponse`, or a `Left` holding an
-`ErrorResponse`. oslash has no public way to read them, so check which one you
-have and read `_value` or `_error`. Those attributes are stable for all of
-5.x:
+A `Response` is a `SuccessResponse` or an `ErrorResponse`. Both are frozen
+dataclasses, so read their fields directly:
 
 ```pycon
->>> from oslash.either import Left
 >>> from jsonrpcserver import dispatch_to_response
+>>> from jsonrpcserver.response import ErrorResponse
 >>> response = dispatch_to_response('{"jsonrpc": "2.0", "method": "ping", "id": 1}')
->>> isinstance(response, Left)
-False
->>> response._value
+>>> response
 SuccessResponse(result='pong', id=1)
+>>> response.result
+'pong'
 >>> error = dispatch_to_response('{"jsonrpc": "2.0", "method": "nope", "id": 1}')
->>> isinstance(error, Left)
+>>> isinstance(error, ErrorResponse)
 True
->>> error._error
-ErrorResponse(code=-32601, message='Method not found', data='nope', id=1)
+>>> error.code
+-32601
 ```
 
-`print(response)` raises `TypeError: not all arguments converted during
-string formatting`, because of a bug in oslash. Turn it into a dict first with
-`to_dict`:
+`to_dict` turns either one into a JSON-RPC response dict:
 
 ```pycon
 >>> from jsonrpcserver.response import to_dict
->>> print(to_dict(response))
+>>> to_dict(response)
 {'jsonrpc': '2.0', 'result': 'pong', 'id': 1}
 ```
+
+!!! info "Changed in 6.0"
+    5.x wrapped responses in the oslash library's `Right` and `Left`, read
+    through `_value` and `_error`. See [Migration](migration.md).
 
 For a batch, it gives a list of Responses. Everything here works the same
 with `async_dispatch_to_serializable` and `async_dispatch_to_response`. See

@@ -5,9 +5,8 @@ A Response is a Result plus the request's id
 """
 
 import warnings
-from typing import Any, NamedTuple, cast
-
-from oslash.either import Either, Left, Right
+from dataclasses import dataclass
+from typing import Any
 
 from .codes import (
     ERROR_INVALID_REQUEST,
@@ -20,14 +19,16 @@ from .sentinels import NODATA
 Deserialized = dict[str, Any] | list[dict[str, Any]]
 
 
-class SuccessResponse(NamedTuple):
+@dataclass(frozen=True, slots=True)
+class SuccessResponse:
     """A successful response: the method's result and the request's id."""
 
     result: Any
     id: Any
 
 
-class ErrorResponse(NamedTuple):
+@dataclass(frozen=True, slots=True)
+class ErrorResponse:
     """An error response: the error's code, message and data, and the request's id.
 
     `data` is `NODATA` when there's no data, so it's left out of the response. `id`
@@ -41,15 +42,14 @@ class ErrorResponse(NamedTuple):
 
 
 # oslash's Either takes the success type first, then the error type.
-Response = Either[SuccessResponse, ErrorResponse]
+Response = SuccessResponse | ErrorResponse
 """What `dispatch_to_response` gives for each request.
 
-An oslash `Either`: a `Right` holding a `SuccessResponse`, or a `Left` holding an
-`ErrorResponse`. To read one, check `isinstance(response, Left)`, then read
-`response._error` (an `ErrorResponse`) or `response._value` (a `SuccessResponse`).
-oslash has no public accessor, but these attributes are stable for all of 5.x. Or turn
-it into a dict with `to_dict`.
+A `SuccessResponse` or an `ErrorResponse`. Check `isinstance(response, ErrorResponse)`
+to tell them apart, or turn one into a dict with `to_dict`. Changed in 6.0: 5.x
+wrapped these in oslash's `Right` and `Left`.
 """
+
 ResponseType = type[Response]
 """Deprecated: use `Response`. Kept so code written for 5.0.9 keeps working."""
 
@@ -122,10 +122,9 @@ def to_dict(response: Response) -> dict[str, Any]:
         >>> to_dict(dispatch_to_response(request, {"ping": ping}))
         {'jsonrpc': '2.0', 'result': 'pong', 'id': 1}
     """
-    if isinstance(response, Left):
-        return to_error_dict(response._error)
-    success = cast("Right[SuccessResponse, ErrorResponse]", response)
-    return to_success_dict(success._value)
+    if isinstance(response, ErrorResponse):
+        return to_error_dict(response)
+    return to_success_dict(response)
 
 
 def to_serializable(

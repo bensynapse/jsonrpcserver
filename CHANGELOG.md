@@ -6,8 +6,24 @@
 lists what changes, and [#320](https://github.com/bensynapse/jsonrpcserver/issues/320) tracks it. 5.x gets fixes
 on the `release/5.x` branch.
 
+### Changed
+
+- jsonrpcserver no longer uses oslash. `Success` returns a `SuccessResult`,
+  and `Error` and `InvalidParams` return an `ErrorResult`. Both are frozen
+  dataclasses, and `Result` is `SuccessResult | ErrorResult`. Code that only
+  returns `Success(...)` or `Error(...)` from methods and calls `dispatch`
+  keeps working.
+- `dispatch_to_response` gives `SuccessResponse` and `ErrorResponse` objects,
+  frozen dataclasses with the response's fields. 5.x wrapped them in oslash's
+  `Right` and `Left`, read through `_value` and `_error`. Check
+  `isinstance(response, ErrorResponse)` instead.
+- Removed `InvalidResultError`, `validate_result` and `log_invalid_result` from
+  `jsonrpcserver.dispatcher`. Without the oslash wrappers there's no invalid
+  Result: a method's return value is its result.
+
 ### Removed
 
+- The oslash dependency, and with it the mypy setting `typing.md` asked for.
 - Python 3.8, 3.9 and 3.10, which have reached end of life. 6.0 needs Python
   3.11 or later. Older Pythons keep installing 5.x.
 

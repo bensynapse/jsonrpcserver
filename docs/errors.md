@@ -153,34 +153,6 @@ logging.basicConfig(
 To change only jsonrpcserver's messages, set the level or add a handler on
 the parent logger: `logging.getLogger("jsonrpcserver")`.
 
-A method can return a plain value, a `Success` or an `Error`. What it can't
-return is a result object that `Success` or `Error` didn't make, such as a bare
-`SuccessResult`. This is what that looks like in the log:
-
-```python
-import sys
-
-from jsonrpcserver.result import SuccessResult
-
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter("%(name)s %(levelname)s: %(message)s"))
-logging.getLogger("jsonrpcserver").addHandler(handler)
-
-
-def ping() -> SuccessResult:
-    return SuccessResult("pong")  # Should be Success("pong"), or just "pong"
-
-
-dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}', {"ping": ping})
-logging.getLogger("jsonrpcserver").removeHandler(handler)
-```
-
-```text title="Output"
-jsonrpcserver.dispatcher ERROR: Method 'ping' returned SuccessResult('pong'), which is not a valid Result, so the client got an Internal error. Return a value, Success(value) or Error(code, message): https://bensynapse.github.io/jsonrpcserver/methods/
-```
-
-!!! info "New in 5.0.10, changed in 5.1.0"
-    The `jsonrpcserver.main` messages and this one. Before 5.0.10, a
-    serializer failure raised out of `dispatch`. An invalid return value was
-    logged with a traceback, and its explanation was also sent to the client
-    in `data`. Before 5.1.0, a plain return value was invalid too.
+!!! info "New in 5.0.10"
+    The `jsonrpcserver.main` messages. Before 5.0.10, a serializer failure
+    raised out of `dispatch`.
