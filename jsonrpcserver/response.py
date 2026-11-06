@@ -4,7 +4,6 @@ A Response is a Result plus the request's id
 (https://www.jsonrpc.org/specification#response_object).
 """
 
-import warnings
 from dataclasses import dataclass
 from typing import Any
 
@@ -49,9 +48,6 @@ A `SuccessResponse` or an `ErrorResponse`. Check `isinstance(response, ErrorResp
 to tell them apart, or turn one into a dict with `to_dict`. Changed in 6.0: 5.x
 wrapped these in oslash's `Right` and `Left`.
 """
-
-ResponseType = type[Response]
-"""Deprecated: use `Response`. Kept so code written for 5.0.9 keeps working."""
 
 
 def ParseErrorResponse(data: Any) -> ErrorResponse:  # pylint: disable=invalid-name
@@ -140,30 +136,3 @@ def to_serializable(
 
 # The names used in 5.0.9. They were renamed before 5.0.10, and are kept so code that
 # imports them keeps working. They will be removed in 6.0.
-
-
-def _deprecated(old: str, new: str) -> None:
-    warnings.warn(
-        f"jsonrpcserver.response.{old} is deprecated and will be removed in 6.0. "
-        f"Use {new} instead.",
-        DeprecationWarning,
-        stacklevel=3,
-    )
-
-
-def serialize_error(response: ErrorResponse) -> dict[str, Any]:
-    """Deprecated: use `to_error_dict`. Warns with DeprecationWarning (5.0.10)."""
-    _deprecated("serialize_error", "to_error_dict")
-    return to_error_dict(response)
-
-
-def serialize_success(response: SuccessResponse) -> dict[str, Any]:
-    """Deprecated: use `to_success_dict`. Warns with DeprecationWarning (5.0.10)."""
-    _deprecated("serialize_success", "to_success_dict")
-    return to_success_dict(response)
-
-
-def to_serializable_one(response: Response) -> dict[str, Any]:
-    """Deprecated: use `to_dict`. Warns with DeprecationWarning (5.0.10)."""
-    _deprecated("to_serializable_one", "to_dict")
-    return to_dict(response)

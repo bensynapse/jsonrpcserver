@@ -39,8 +39,17 @@ on the `release/5.x` branch.
   a message that isn't a str. `@method` raises `ValueError` for a name starting
   with `rpc.`. 5.0.10 warned about both.
 
+- `serve()` listens on localhost unless you pass a host. 5.x listened on every
+  network interface by default. `serve("", port)` does that now.
+- The sync and async dispatch functions take the same options with the same
+  defaults. A test keeps them that way.
+
 ### Removed
 
+- `serialize_error`, `serialize_success` and `to_serializable_one` in
+  `jsonrpcserver.response` (and `to_serializable_one` in `jsonrpcserver.main`),
+  deprecated in 5.0.10. Use `to_error_dict`, `to_success_dict` and `to_dict`.
+- `ResponseType`. Use `Response`.
 - The jsonschema dependency, and `jsonrpcserver/request-schema.json`. 6.0 has no
   runtime dependencies.
 - The oslash dependency, and with it the mypy setting `typing.md` asked for.

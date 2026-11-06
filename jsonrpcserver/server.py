@@ -71,7 +71,7 @@ def listening_message(name: str, port: int) -> str:
     return f" * Listening on http://{name}:{port}/. This is a development server."
 
 
-def serve(name: str = "", port: int = 5000) -> None:
+def serve(name: str = "localhost", port: int = 5000) -> None:
     """Serve the methods registered with `@method` over HTTP. For development only.
 
     It answers POST requests on any path with `dispatch`, sends 204 No Content for a
@@ -82,14 +82,15 @@ def serve(name: str = "", port: int = 5000) -> None:
     logger. If logging isn't configured, it writes that line to stderr instead
     (new in 5.0.10). Each request is logged at INFO level.
 
-    It has no TLS, no authentication and no request size limit, and it doesn't pass
-    `max_batch_size`. Put `dispatch` behind a real web server or framework in
-    production.
+    It has no TLS, no authentication and no request size limit. It uses `dispatch`'s
+    defaults, so a batch may hold up to 100 requests. Put `dispatch` behind a real web
+    server or framework in production.
 
     Args:
-        name: The host name or address to listen on. The default, "", listens on
-            every network interface, so other machines can connect. Pass "localhost"
-            to accept only local connections.
+        name: The host name or address to listen on. The default, "localhost",
+            accepts only local connections. Pass "" to listen on every network
+            interface, so other machines can connect. Changed in 6.0: 5.x listened
+            on every interface by default.
         port: The port to listen on.
 
     Example:
