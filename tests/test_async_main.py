@@ -3,7 +3,6 @@
 import json
 
 import pytest
-from oslash.either import Right
 
 from jsonrpcserver.async_main import (
     dispatch_to_json,
@@ -24,7 +23,7 @@ async def ping() -> Result:
 async def test_dispatch_to_response() -> None:
     assert await dispatch_to_response(
         '{"jsonrpc": "2.0", "method": "ping", "id": 1}', {"ping": ping}
-    ) == Right(SuccessResponse("pong", 1))
+    ) == SuccessResponse("pong", 1)
 
 
 @pytest.mark.asyncio

@@ -41,14 +41,6 @@ A JSON-RPC error is still a successful HTTP exchange, so send 200 with it. If
 no body, so send 204 No Content. The built-in `serve()` does this from
 5.0.10.
 
-## Why does printing the result of dispatch_to_response fail?
-
-`print(dispatch_to_response(...))` raises `TypeError: not all arguments
-converted during string formatting`. That's a bug in oslash, the library the
-`Response` objects come from. Print `to_dict(response)` instead, or use
-`dispatch_to_serializable`, which gives dicts. See
-[Dispatch](dispatch.md#dispatch_to_response).
-
 ## How do I get the response as a dict instead of a string?
 
 Use `dispatch_to_serializable`. See

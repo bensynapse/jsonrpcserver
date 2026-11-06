@@ -3,18 +3,14 @@
 import asyncio
 import logging
 from collections.abc import Callable
-from functools import partial
 from inspect import isawaitable
 from itertools import starmap
 from typing import Any, cast
-
-from oslash.either import Left
 
 from .dispatcher import (
     NORESPONSE,
     BatchTooLargeResponse,
     Deserialized,
-    InvalidResultError,
     create_request,
     deserialize_request,
     exception_data,
@@ -22,7 +18,6 @@ from .dispatcher import (
     extract_kwargs,
     extract_list,
     get_method,
-    log_invalid_result,
     member_id,
     not_notification,
     to_response,
@@ -37,9 +32,14 @@ from .methods import AnyMethod, MethodsArgument
 from .methods import Method as Method
 from .methods import Methods as Methods
 from .request import Request
-from .response import InvalidRequestResponse, Response, ServerErrorResponse
+from .response import (
+    ErrorResponse,
+    InvalidRequestResponse,
+    Response,
+    ServerErrorResponse,
+)
 from .result import ErrorResult, InternalErrorResult, Result
-from .utils import identity, make_list, unwrap
+from .utils import identity, make_list
 
 logger = logging.getLogger(__name__)
 
@@ -52,29 +52,26 @@ async def call(
         # Plain (sync) methods work too. Their result is used as it is.
         if isawaitable(result):
             result = await result
-        # A plain value becomes Success(value) (5.1.0).
-        result = to_result(result)
     except JsonRpcError as exc:
-        return Left(ErrorResult(code=exc.code, message=exc.message, data=exc.data))
-    except InvalidResultError as exc:
-        log_invalid_result(request.method, exc, logger)
-        return Left(InternalErrorResult(exception_data(exc, debug)))
+        return ErrorResult(code=exc.code, message=exc.message, data=exc.data)
     except Exception as exc:
         # Other error inside method - Internal error
         logger.exception("Method %r raised an exception", request.method)
-        return Left(InternalErrorResult(exception_data(exc, debug)))
-    return result
+        return InternalErrorResult(exception_data(exc, debug))
+    # A plain value becomes Success(value) (5.1.0).
+    return to_result(result)
 
 
 async def dispatch_request(
     methods: MethodsArgument, context: Any, request: Request, debug: bool = False
 ) -> tuple[Request, Result]:
-    method = get_method(methods, request.method).bind(
-        partial(validate_args, request, context)
-    )
-    if isinstance(method, Left):
-        return request, cast(Result, method)
-    return request, await call(request, context, unwrap(method), debug=debug)
+    method = get_method(methods, request.method)
+    if isinstance(method, ErrorResult):
+        return request, method
+    checked = validate_args(request, context, method)
+    if isinstance(checked, ErrorResult):
+        return request, checked
+    return request, await call(request, context, checked, debug=debug)
 
 
 async def dispatch_deserialized(
@@ -108,15 +105,13 @@ async def dispatch_single(
 ) -> Response | None:
     """Validate and dispatch one member of a batch."""
     if isinstance(deserialized, list):
-        return Left(InvalidRequestResponse("The request failed schema validation"))
+        return InvalidRequestResponse("The request failed schema validation")
     result = validate_request(validator, deserialized)
-    if isinstance(result, Left):
-        return Left(result._error)
+    if isinstance(result, ErrorResponse):
+        return result
     return cast(
         Response | None,
-        await dispatch_deserialized(
-            methods, context, identity, unwrap(result), debug=debug
-        ),
+        await dispatch_deserialized(methods, context, identity, result, debug=debug),
     )
 
 
@@ -139,9 +134,7 @@ async def dispatch_member(
         )
     except Exception as exc:
         logger.exception("Error while dispatching a member of a batch")
-        response = Left(
-            ServerErrorResponse(exception_data(exc, debug), member_id(member))
-        )
+        response = ServerErrorResponse(exception_data(exc, debug), member_id(member))
     return NORESPONSE if response is None else post_process(response)
 
 
@@ -158,13 +151,13 @@ async def dispatch_to_response_pure(
 ) -> Any:
     try:
         parsed = deserialize_request(deserializer, request)
-        if isinstance(parsed, Left):
-            return post_process(Left(parsed._error))
-        deserialized = unwrap(parsed)
+        if isinstance(parsed, ErrorResponse):
+            return post_process(parsed)
+        deserialized = parsed
         if isinstance(deserialized, list) and deserialized:
             if max_batch_size is not None and len(deserialized) > max_batch_size:
                 return post_process(
-                    Left(BatchTooLargeResponse(len(deserialized), max_batch_size))
+                    BatchTooLargeResponse(len(deserialized), max_batch_size)
                 )
             responses = await asyncio.gather(
                 *(
@@ -178,11 +171,11 @@ async def dispatch_to_response_pure(
                 True, [response for response in responses if response is not NORESPONSE]
             )
         validated = validate_request(validator, deserialized)
-        if isinstance(validated, Left):
-            return post_process(Left(validated._error))
+        if isinstance(validated, ErrorResponse):
+            return post_process(validated)
         return await dispatch_deserialized(
-            methods, context, post_process, unwrap(validated), debug=debug
+            methods, context, post_process, validated, debug=debug
         )
     except Exception as exc:
         logger.exception("Error while dispatching the request")
-        return post_process(Left(ServerErrorResponse(exception_data(exc, debug), None)))
+        return post_process(ServerErrorResponse(exception_data(exc, debug), None))

@@ -133,11 +133,9 @@ def dispatch_to_response(
     Most code wants `dispatch` (a JSON string) or `dispatch_to_serializable` (dicts)
     instead. Use this one to inspect or change responses before they're serialized.
 
-    Each Response is an oslash `Right` holding a `SuccessResponse`, or a `Left`
-    holding an `ErrorResponse`. oslash has no public way to read them, so check
-    `isinstance(response, Left)` and read `response._error` or `response._value`.
-    These attributes are stable for all of 5.x. Printing a Response raises
-    `TypeError`, because of a bug in oslash; print `to_dict(response)` instead.
+    Each Response is a `SuccessResponse` or an `ErrorResponse`, frozen dataclasses
+    with the response's fields. Check `isinstance(response, ErrorResponse)` to tell
+    them apart. Changed in 6.0: 5.x wrapped them in oslash's `Right` and `Left`.
 
     Args:
         request: The JSON-RPC request string.

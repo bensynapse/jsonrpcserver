@@ -2,8 +2,6 @@
 
 import json
 
-from oslash.either import Right
-
 from jsonrpcserver.main import (
     dispatch_to_json,
     dispatch_to_response,
@@ -22,7 +20,7 @@ def ping() -> Result:
 def test_dispatch_to_response() -> None:
     assert dispatch_to_response(
         '{"jsonrpc": "2.0", "method": "ping", "id": 1}', {"ping": ping}
-    ) == Right(SuccessResponse("pong", 1))
+    ) == SuccessResponse("pong", 1)
 
 
 def test_dispatch_to_serializable() -> None:

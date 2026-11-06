@@ -5,9 +5,8 @@ A Result is the "result" or "error" part of a JSON-RPC response object
 "jsonrpc" and "id" parts.
 """
 
-from typing import Any, NamedTuple
-
-from oslash.either import Either, Left, Right
+from dataclasses import dataclass
+from typing import Any
 
 from .codes import ERROR_INTERNAL_ERROR, ERROR_INVALID_PARAMS, ERROR_METHOD_NOT_FOUND
 from .sentinels import NODATA
@@ -16,8 +15,10 @@ from .utils import warn_if_invalid_error
 # pylint: disable=missing-class-docstring,missing-function-docstring,invalid-name
 
 
-class SuccessResult(NamedTuple):
-    """The value inside the Result that `Success` returns."""
+@dataclass(frozen=True, slots=True)
+class SuccessResult:
+    """A successful result: what `Success` returns. Changed in 6.0: it's the Result
+    itself, not an oslash `Right` around it."""
 
     result: Any = None
 
@@ -25,8 +26,10 @@ class SuccessResult(NamedTuple):
         return f"SuccessResult({self.result!r})"
 
 
-class ErrorResult(NamedTuple):
-    """The value inside the Result that `Error` and `InvalidParams` return.
+@dataclass(frozen=True, slots=True)
+class ErrorResult:
+    """An error result: what `Error` and `InvalidParams` return. Changed in 6.0: it's
+    the Result itself, not an oslash `Left` around it.
 
     `data` is `NODATA` when there's no data, so it's left out of the response.
     """
@@ -42,14 +45,12 @@ class ErrorResult(NamedTuple):
         )
 
 
-# Union of the two valid result types. oslash's Either takes the success type
-# first, then the error type.
-Result = Either[SuccessResult, ErrorResult]
+Result = SuccessResult | ErrorResult
 """The return type of a method: what `Success`, `Error` and `InvalidParams` give.
 
-It's an oslash `Either`: a `Right` holding a `SuccessResult`, or a `Left` holding an
-`ErrorResult`. Use it as the return annotation of your methods. You don't need to
-look inside it.
+Use it as the return annotation of your methods. To tell the two apart, check
+`isinstance(result, ErrorResult)`. Changed in 6.0: 5.x wrapped these in oslash's
+`Right` and `Left`.
 """
 
 
@@ -71,7 +72,7 @@ def InvalidParamsResult(data: Any = NODATA) -> ErrorResult:
 # Helpers (the public functions)
 
 
-def Success(result: Any = None) -> Result:
+def Success(result: Any = None) -> SuccessResult:
     """A successful result. Return it from a method.
 
     Args:
@@ -88,10 +89,10 @@ def Success(result: Any = None) -> Result:
         >>> dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}', {"ping": ping})
         '{"jsonrpc": "2.0", "result": "pong", "id": 1}'
     """
-    return Right(SuccessResult(result))
+    return SuccessResult(result)
 
 
-def Error(code: int, message: str, data: Any = NODATA) -> Result:
+def Error(code: int, message: str, data: Any = NODATA) -> ErrorResult:
     """An error result. Return it from a method to send an error response.
 
     It's sent as it is, whatever `debug` is, so don't put secrets in it.
@@ -119,10 +120,10 @@ def Error(code: int, message: str, data: Any = NODATA) -> Result:
         {'code': 1, 'message': 'It failed', 'data': {'reason': 'example'}}
     """
     warn_if_invalid_error(code, message, stacklevel=2)
-    return Left(ErrorResult(code, message, data))
+    return ErrorResult(code, message, data)
 
 
-def InvalidParams(data: Any = NODATA) -> Result:
+def InvalidParams(data: Any = NODATA) -> ErrorResult:
     """An Invalid params error: `Error(-32602, "Invalid params", data)`.
 
     Return it when the arguments have the right shape but a bad value.
@@ -147,4 +148,4 @@ def InvalidParams(data: Any = NODATA) -> Result:
         >>> dispatch_to_serializable(request, {"rate": rate})["error"]
         {'code': -32602, 'message': 'Invalid params', 'data': 'Stars must be 1 to 5'}
     """
-    return Left(InvalidParamsResult(data))
+    return InvalidParamsResult(data)

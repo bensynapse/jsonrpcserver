@@ -3,11 +3,7 @@
 import warnings
 from collections.abc import Callable
 from functools import reduce
-from typing import Any, TypeVar, cast
-
-from oslash.either import Either, Right
-
-T = TypeVar("T")
+from typing import Any
 
 # pylint: disable=invalid-name
 
@@ -45,8 +41,3 @@ def warn_if_invalid_error(code: Any, message: Any, stacklevel: int) -> None:
             f"JSON-RPC error messages should be strings, not {message!r}",
             stacklevel=stacklevel + 1,
         )
-
-
-def unwrap(either: Either[T, Any]) -> T:
-    """The value inside a Right. Only call this once you know it isn't a Left."""
-    return cast("Right[T, Any]", either)._value
