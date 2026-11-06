@@ -106,24 +106,25 @@ you can see what went wrong without reading the log:
 Use it in development only. It's the same option on every dispatch function,
 sync and async. It's new in 5.0.10.
 
-## Spec warnings
+## Spec errors
 
 The spec says an error code must be an integer, and the message should be a
-string. It also reserves method names that start with `rpc.`. jsonrpcserver
-warns about these with a `UserWarning`, but still sends what you gave it, so
-existing code keeps working:
+string. `Error` and `JsonRpcError` raise `TypeError` for anything else:
 
 ```pycon
->>> import warnings
->>> with warnings.catch_warnings(record=True) as caught:
-...     warnings.simplefilter("always")
-...     _ = Error("E1", "Insufficient funds")
->>> print(caught[0].message)
-JSON-RPC error codes must be integers, not 'E1'
+>>> Error("E1", "Insufficient funds")
+Traceback (most recent call last):
+  ...
+TypeError: JSON-RPC error codes must be integers, not 'E1'
 ```
 
-To make them errors in your tests, run pytest with `-W error::UserWarning`.
-These warnings are new in 5.0.10. 6.0 may turn them into errors.
+Inside a method, that `TypeError` is an exception like any other, so the
+client gets an Internal error and the log has the traceback. The spec also
+reserves method names that start with `rpc.`, and `@method` raises
+`ValueError` for them.
+
+!!! info "Changed in 6.0"
+    5.0.10 warned with a `UserWarning` and sent the error as given.
 
 ## Logging
 
@@ -131,7 +132,7 @@ Everything is logged on the `jsonrpcserver` logger or one of its children:
 
 | Logger | What it logs |
 |---|---|
-| `jsonrpcserver.dispatcher` | For `dispatch`: an exception a method didn't catch (ERROR, with the traceback). A method that returned something other than `Success` or `Error` (ERROR). A failure inside jsonrpcserver (ERROR, with the traceback). |
+| `jsonrpcserver.dispatcher` | For `dispatch`: an exception a method didn't catch (ERROR, with the traceback). A failure inside jsonrpcserver (ERROR, with the traceback). |
 | `jsonrpcserver.async_dispatcher` | The same, for `async_dispatch`. |
 | `jsonrpcserver.main` | A result the serializer couldn't handle, such as a `datetime` (ERROR, with the traceback). Both sync and async. |
 | `jsonrpcserver.server` | `serve()` only: where it's listening, and one line per HTTP request (INFO). |

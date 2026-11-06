@@ -1,6 +1,5 @@
 """Utility functions"""
 
-import warnings
 from collections.abc import Callable
 from functools import reduce
 from typing import Any
@@ -24,20 +23,14 @@ def make_list(x: Any) -> list[Any]:
     return x if isinstance(x, list) else [x]  # pyright: ignore[reportUnknownVariableType]
 
 
-def warn_if_invalid_error(code: Any, message: Any, stacklevel: int) -> None:
-    """Warn if an error's code or message breaks the JSON-RPC spec.
+def check_error(code: Any, message: Any) -> None:
+    """Raise TypeError if an error's code or message breaks the JSON-RPC spec.
 
-    The spec says code MUST be an integer and message SHOULD be a string. These used to
-    be sent as given, which some clients can't parse. It's a warning, not an error,
-    so existing code keeps working.
+    The spec says code MUST be an integer and message SHOULD be a string. 5.0.10
+    warned and sent them anyway, which some clients can't parse. Changed in 6.0:
+    it raises.
     """
     if isinstance(code, bool) or not isinstance(code, int):
-        warnings.warn(
-            f"JSON-RPC error codes must be integers, not {code!r}",
-            stacklevel=stacklevel + 1,
-        )
+        raise TypeError(f"JSON-RPC error codes must be integers, not {code!r}")
     if not isinstance(message, str):
-        warnings.warn(
-            f"JSON-RPC error messages should be strings, not {message!r}",
-            stacklevel=stacklevel + 1,
-        )
+        raise TypeError(f"JSON-RPC error messages must be strings, not {message!r}")

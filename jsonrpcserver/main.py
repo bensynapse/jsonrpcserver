@@ -12,6 +12,7 @@ They differ only in the form of the response:
 
 import json
 import logging
+import math
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -40,7 +41,31 @@ from .validator import default_validator as default_validator
 
 logger = logging.getLogger(__name__)
 
-default_deserializer = json.loads
+DEFAULT_MAX_BATCH_SIZE = 100
+"""The default for `max_batch_size`: the most requests a batch may hold. New in 6.0,
+which turned the limit on by default. Pass `max_batch_size=None` to turn it off."""
+
+
+def _reject_constant(constant: str) -> Any:
+    raise ValueError(f"{constant} is not valid JSON")
+
+
+def _finite_float(text: str) -> float:
+    number = float(text)
+    if math.isinf(number):
+        raise ValueError(f"{text} is too big")
+    return number
+
+
+def default_deserializer(request: str) -> Any:
+    """json.loads, but `NaN`, `Infinity`, `-Infinity` and numbers too big for a float
+    raise ValueError, which the client gets as a -32700 Parse error.
+
+    They aren't valid JSON (RFC 8259, section 6). New in 6.0: 5.x accepted them.
+    """
+    return json.loads(
+        request, parse_constant=_reject_constant, parse_float=_finite_float
+    )
 
 
 def default_serializer(response: Any) -> str:
@@ -108,11 +133,11 @@ def dispatch_to_response(
     methods: MethodsArgument | None = None,
     *,
     context: Any = NOCONTEXT,
-    deserializer: Callable[[str], Deserialized] = json.loads,
+    deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
     debug: bool = False,
-    max_batch_size: int | None = None,
+    max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
 ) -> Response | list[Response] | None:
     """Dispatch a request and give the response as Response objects.
 
@@ -130,14 +155,16 @@ def dispatch_to_response(
             `jsonrpcserver.methods.global_methods`.
         context: If given, it's passed as the first argument to every method. The
             client can't see or set it.
-        deserializer: The function that parses the request string. The default is
-            `json.loads`. If it raises, the client gets a -32700 Parse error whose
-            `data` is the exception message.
+        deserializer: The function that parses the request string. The default,
+            `default_deserializer`, is `json.loads` that also rejects `NaN`,
+            `Infinity` and numbers too big for a float (changed in 6.0). If it
+            raises, the client gets a -32700 Parse error whose `data` is the
+            exception message.
         validator: The function that checks a parsed request against the JSON-RPC
             spec. It should raise an exception, of any kind, if the request is
             invalid. In a batch it's called once for each request (new in 5.0.10).
-            The default checks against a JSON schema. `lambda _: None` turns
-            validation off.
+            The default checks the JSON-RPC 2.0 rules (`jsonrpcserver.validator`).
+            `lambda _: None` turns validation off.
         post_process: A function applied to each Response before it's returned.
         debug: If True, the error response for an exception a method doesn't catch
             includes the exception message in `data`. The default leaves `data`
@@ -146,8 +173,8 @@ def dispatch_to_response(
             way. New in 5.0.10.
         max_batch_size: The most requests a batch may hold. A bigger batch gets a
             single -32600 Invalid request response, and none of it is run. The
-            default, None, means no limit. A server open to the internet should set
-            one, such as 100. New in 5.0.10.
+            default is 100 (`DEFAULT_MAX_BATCH_SIZE`). None means no limit. New in
+            5.0.10. Changed in 6.0: 5.x had no limit by default.
 
     Returns:
         A Response for a single request, a list of Responses for a batch, or None
@@ -180,7 +207,7 @@ def dispatch_to_serializable(
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
-    max_batch_size: int | None = None,
+    max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
 ) -> dict[str, Any] | list[dict[str, Any]] | None:
     """Dispatch a request and give the response as a dict.
 
@@ -235,7 +262,7 @@ def dispatch_to_json(
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
-    max_batch_size: int | None = None,
+    max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
     serializer: Callable[
         [dict[str, Any] | list[dict[str, Any]] | str], str
     ] = default_serializer,

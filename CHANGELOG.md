@@ -28,6 +28,17 @@ on the `release/5.x` branch.
   `jsonrpcserver.validator.InvalidRequestError`, with a message that says what's
   wrong. The client still gets the same -32600 response.
 
+- Batches are limited to 100 requests by default (`max_batch_size`). A bigger
+  batch gets one -32600 error, and none of it runs. Pass `max_batch_size=None`
+  for no limit, as in 5.x.
+- The default deserializer rejects `NaN`, `Infinity`, `-Infinity` and numbers
+  too big for a float, with a -32700 Parse error. They aren't valid JSON.
+  `deserializer=json.loads` accepts them, as in 5.x. `dispatch_to_response`
+  now uses the same default as the other dispatch functions.
+- `Error` and `JsonRpcError` raise `TypeError` for a code that isn't an int or
+  a message that isn't a str. `@method` raises `ValueError` for a name starting
+  with `rpc.`. 5.0.10 warned about both.
+
 ### Removed
 
 - The jsonschema dependency, and `jsonrpcserver/request-schema.json`. 6.0 has no

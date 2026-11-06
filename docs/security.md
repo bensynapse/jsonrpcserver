@@ -109,15 +109,16 @@ on a laptop with Python 3.13, a 5 MB batch of 100,000 pings took about 4
 seconds of CPU time. If the methods do I/O, a batch also multiplies the load
 on your database or the APIs you call.
 
-Set `max_batch_size` on every dispatch call:
+Every dispatch function limits a batch to 100 requests by default. If your
+methods are expensive, lower it:
 
 ```python
-response = dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}', max_batch_size=100)
+response = dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}', max_batch_size=10)
 ```
 
 A bigger batch gets a single error response, and none of it runs. See
 [Notifications and batches](batches.md#limit-the-batch-size). It's new in
-5.0.10.
+5.0.10, and on by default from 6.0.
 
 ## Limit the request body
 

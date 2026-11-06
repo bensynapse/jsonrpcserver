@@ -12,6 +12,7 @@ from typing import Any, cast
 from .async_dispatcher import dispatch_to_response_pure
 from .dispatcher import Deserialized, check_max_batch_size
 from .main import (
+    DEFAULT_MAX_BATCH_SIZE,
     default_deserializer,
     default_serializer,
     default_validator,
@@ -35,7 +36,7 @@ async def dispatch_to_response(
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
     debug: bool = False,
-    max_batch_size: int | None = None,
+    max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
 ) -> Response | Iterable[Response] | None:
     """Dispatch a request and give the response as Response objects. Async.
 
@@ -83,7 +84,7 @@ async def dispatch_to_serializable(
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
-    max_batch_size: int | None = None,
+    max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
 ) -> dict[str, Any] | list[dict[str, Any]] | None:
     """Dispatch a request and give the response as a dict. Async.
 
@@ -129,7 +130,7 @@ async def dispatch_to_json(
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
-    max_batch_size: int | None = None,
+    max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
     serializer: Callable[
         [dict[str, Any] | list[dict[str, Any]] | None], str
     ] = default_serializer,

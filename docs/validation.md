@@ -117,40 +117,20 @@ strangers can reach.
 
 ## NaN, Infinity and huge numbers
 
-Python's `json` module accepts `NaN`, `Infinity` and numbers like `1e400` in
-a request. They aren't valid JSON, and the validator can't see them, because
-they're already floats by the time it runs. To reject them, pass a stricter
-`deserializer`:
-
-```python
-import json
-import math
-
-
-def reject(constant: str) -> None:
-    raise ValueError(f"{constant} is not valid JSON")
-
-
-def finite_float(text: str) -> float:
-    number = float(text)
-    if math.isinf(number):
-        raise ValueError(f"{text} is too big")
-    return number
-
-
-def strict_loads(request: str) -> Any:
-    return json.loads(request, parse_constant=reject, parse_float=finite_float)
-```
+`NaN`, `Infinity`, `-Infinity` and numbers too big for a float, like `1e400`,
+aren't valid JSON. Python's `json` module accepts them anyway, and the
+validator can't see them, because they're already floats by the time it runs.
+So the default deserializer rejects them, and the client gets a Parse error:
 
 ```pycon
->>> dispatch(
-...     '{"jsonrpc": "2.0", "method": "ping", "params": [NaN], "id": 1}',
-...     deserializer=strict_loads,
-... )
+>>> dispatch('{"jsonrpc": "2.0", "method": "ping", "params": [NaN], "id": 1}')
 '{"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error", "data": "NaN is not valid JSON"}, "id": null}'
 ```
 
-In 5.0.10, `dispatch` and `async_dispatch` never write them with the default
-serializer. It refuses, and the client gets an Internal error instead. 5.0.9
-writes them as they are. `dispatch_to_serializable` returns the float itself,
-so if your framework serializes the dict, check how it treats them.
+To accept them, pass `deserializer=json.loads`. The default serializer never
+writes them into a response: it refuses, and the client gets an Internal
+error instead. `dispatch_to_serializable` returns the float itself, so if your
+framework serializes the dict, check how it treats them.
+
+!!! info "Changed in 6.0"
+    5.x accepted them unless you passed a stricter `deserializer`.
