@@ -28,6 +28,7 @@ from .dispatcher import (
     to_result,
     validate_args,
     validate_request,
+    warn_if_over_6_0_batch_limit,
 )
 from .exceptions import JsonRpcError
 from .methods import AnyMethod, MethodsArgument
@@ -161,6 +162,7 @@ async def dispatch_to_response_pure(
             return post_process(Left(parsed._error))
         deserialized = unwrap(parsed)
         if isinstance(deserialized, list) and deserialized:
+            warn_if_over_6_0_batch_limit(len(deserialized), max_batch_size)
             if max_batch_size is not None and len(deserialized) > max_batch_size:
                 return post_process(
                     Left(BatchTooLargeResponse(len(deserialized), max_batch_size))

@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.2.0 (2026-11-06)
+
+Warnings about what 6.0 changes, so an upgrade doesn't surprise you. Nothing
+else changes. Each is a `FutureWarning`, which Python shows by default.
+
+- `serve()` without a host warns. From 6.0 it listens on localhost only.
+  `serve("", port)` keeps every network interface, quietly.
+- A request with `NaN`, `Infinity`, `-Infinity` or a number too big for a float
+  warns. 6.0 rejects them with a Parse error. `deserializer=json.loads` accepts
+  them quietly. `dispatch_to_response` now uses the same default deserializer
+  as the other dispatch functions.
+- A batch of more than 100 requests without `max_batch_size` warns. 6.0 limits
+  batches to 100 by default. Passing `max_batch_size` turns the warning off.
+
+The [6.0 plan](https://github.com/bensynapse/jsonrpcserver/blob/main/plans/6.0.md)
+lists everything else that changes, such as results and responses without
+oslash.
+
 ## 5.1.0 (2026-11-06)
 
 ### Added

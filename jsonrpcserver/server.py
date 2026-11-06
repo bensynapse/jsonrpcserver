@@ -7,8 +7,9 @@ server or framework.
 import json
 import logging
 import sys
+import warnings
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any
+from typing import Any, Optional
 
 from .main import dispatch
 from .response import ParseErrorResponse, to_error_dict
@@ -71,7 +72,7 @@ def listening_message(name: str, port: int) -> str:
     return f" * Listening on http://{name}:{port}/. This is a development server."
 
 
-def serve(name: str = "", port: int = 5000) -> None:
+def serve(name: Optional[str] = None, port: int = 5000) -> None:
     """Serve the methods registered with `@method` over HTTP. For development only.
 
     It answers POST requests on any path with `dispatch`, sends 204 No Content for a
@@ -87,9 +88,11 @@ def serve(name: str = "", port: int = 5000) -> None:
     production.
 
     Args:
-        name: The host name or address to listen on. The default, "", listens on
-            every network interface, so other machines can connect. Pass "localhost"
-            to accept only local connections.
+        name: The host name or address to listen on. Without one, it listens on
+            every network interface, so other machines can connect, and gives a
+            `FutureWarning` (5.2.0): 6.0 listens on localhost by default. Pass ""
+            to keep every interface, or "localhost" to accept only local
+            connections.
         port: The port to listen on.
 
     Example:
@@ -103,6 +106,15 @@ def serve(name: str = "", port: int = 5000) -> None:
         serve("localhost", 8000)
         ```
     """
+    if name is None:
+        warnings.warn(
+            "serve() without a host listens on every network interface. From 6.0 it "
+            'will listen on localhost only. Pass serve("", port) to keep listening '
+            'on every interface, or serve("localhost", port).',
+            FutureWarning,
+            stacklevel=2,
+        )
+        name = ""
     httpd = ThreadingHTTPServer((name, port), RequestHandler)
     try:
         message = listening_message(name, port)

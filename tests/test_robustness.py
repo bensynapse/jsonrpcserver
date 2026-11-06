@@ -134,7 +134,10 @@ def test_nan_allowed_with_plain_json_dumps() -> None:
 
 
 def test_infinite_id_gets_null_id() -> None:
-    response = dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1e400}', METHODS)
+    with pytest.warns(FutureWarning, match="too big for a float"):
+        response = dispatch(
+            '{"jsonrpc": "2.0", "method": "ping", "id": 1e400}', METHODS
+        )
     assert json.loads(response) == {
         "jsonrpc": "2.0",
         "error": INTERNAL_ERROR,
