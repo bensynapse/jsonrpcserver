@@ -58,7 +58,7 @@ that every name in `__all__` is there.
 
 - Keep each pull request to one change, with a test for it.
 - Add a line to CHANGELOG.md if users will notice the change.
-- main is 6.0 and supports Python 3.11 and later. [plans/6.0.md](plans/6.0.md)
+- main is 6.0 and supports Python 3.11 and later. [plans/6.0.md](https://github.com/bensynapse/jsonrpcserver/blob/main/plans/6.0.md)
   lists what changes. Fixes for 5.x go to the `release/5.x` branch. 5.x
   supports Python 3.8 and later, and its public API must not change. That
   includes the names importable from each module, not just `jsonrpcserver`.
