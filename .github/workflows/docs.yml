@@ -1,45 +1,23 @@
 name: Docs
 
-# The site describes the release on PyPI, so it deploys when a release tag is
-# pushed, not on every merge to main. To publish a docs-only fix between
-# releases, run this workflow by hand on main (Actions, Docs, Run workflow).
+# The docs site has one copy of the docs per release line, and the Docs
+# workflow on main builds all of them. A 5.x release tag starts that workflow,
+# so it rebuilds 5.x without removing the 6.0 docs. RELEASING.md on main
+# explains how the site is built.
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  build:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.13"
-      - run: python -m pip install -r requirements/docs.txt
-      - run: mkdocs build --strict
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: site
-
-  deploy:
-    needs: build
+  start:
     runs-on: ubuntu-24.04
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      actions: write
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - name: Run the Docs workflow on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run docs.yml --repo "$GITHUB_REPOSITORY" --ref main
