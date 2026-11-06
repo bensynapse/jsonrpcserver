@@ -1,8 +1,11 @@
 name: Docs
 
+# The site describes the release on PyPI, so it deploys when a release tag is
+# pushed, not on every merge to main. To publish a docs-only fix between
+# releases, run this workflow by hand on main (Actions, Docs, Run workflow).
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:

@@ -35,7 +35,8 @@ Settings → Environments → pypi.
      yet": `## 5.0.10 (2026-10-20)`.
    - The `unreleased` and `pypi_version` lines under `extra` in mkdocs.yml are
      deleted. They show the "not on PyPI yet" banner on every docs page.
-     Merging this redeploys the docs, so merge it just before you tag.
+     The docs deploy when you push the tag, so merging this changes nothing
+     users see until then.
    - The paragraph under "Install" in README.md that says the version isn't
      released yet is deleted. The README becomes the PyPI page.
    - For 5.0.10 only: shorten the "If you are on 5.0.9" section of
@@ -89,7 +90,8 @@ whose version reached PyPI.
 
 ## Docs
 
-The docs site deploys itself from main through `.github/workflows/docs.yml`,
-so it changes when the docs change, not at release time. While main is ahead
-of PyPI, the `unreleased` setting in mkdocs.yml shows a banner that says so.
+The docs site deploys from `.github/workflows/docs.yml` when a release tag is
+pushed, so it always describes the version on PyPI. To publish a docs-only fix
+between releases, run the Docs workflow by hand on main. If main is ahead of
+PyPI by then, set `unreleased` in mkdocs.yml first, so a banner says so.
 The docs also mark features with "New in" or "Changed in" notes.
