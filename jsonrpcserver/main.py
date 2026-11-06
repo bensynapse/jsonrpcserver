@@ -12,7 +12,9 @@ They differ only in the form of the response:
 
 import json
 import logging
+import math
 import pkgutil
+import warnings
 from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 from jsonschema.validators import validator_for
@@ -41,7 +43,42 @@ from .utils import identity
 
 logger = logging.getLogger(__name__)
 
-default_deserializer = json.loads
+_CONSTANTS = {"NaN": math.nan, "Infinity": math.inf, "-Infinity": -math.inf}
+
+
+def _future_constant(constant: str) -> float:
+    warnings.warn(
+        f"{constant} in a request isn't valid JSON. 5.x accepts it, but 6.0 will "
+        "reject it with a Parse error.",
+        FutureWarning,
+        stacklevel=2,
+    )
+    return _CONSTANTS[constant]
+
+
+def _future_float(text: str) -> float:
+    number = float(text)
+    if math.isinf(number):
+        warnings.warn(
+            f"{text} in a request is too big for a float. 5.x reads it as infinity, "
+            "but 6.0 will reject it with a Parse error.",
+            FutureWarning,
+            stacklevel=2,
+        )
+    return number
+
+
+def default_deserializer(request: str) -> Any:
+    """json.loads, which warns about input 6.0 will reject.
+
+    `NaN`, `Infinity`, `-Infinity` and numbers too big for a float are accepted, as
+    in every 5.x release, with a `FutureWarning`: 6.0's default rejects them with a
+    Parse error. Pass `deserializer=json.loads` to accept them without a warning.
+    New in 5.2.0.
+    """
+    return json.loads(
+        request, parse_constant=_future_constant, parse_float=_future_float
+    )
 
 
 def default_serializer(response: Any) -> str:
@@ -121,7 +158,7 @@ def dispatch_to_response(
     methods: Optional[MethodsArgument] = None,
     *,
     context: Any = NOCONTEXT,
-    deserializer: Callable[[str], Deserialized] = json.loads,
+    deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
     debug: bool = False,

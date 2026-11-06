@@ -47,7 +47,9 @@ def reset_calls() -> None:
 
 
 def test_no_limit_by_default() -> None:
-    assert len(json.loads(dispatch(batch(500), {"ping": ping}))) == 500
+    """5.x has no limit. From 5.2.0 a batch over 6.0's default of 100 warns."""
+    with pytest.warns(FutureWarning, match="6.0 limits batches to 100 by default"):
+        assert len(json.loads(dispatch(batch(500), {"ping": ping}))) == 500
 
 
 def test_at_the_limit() -> None:

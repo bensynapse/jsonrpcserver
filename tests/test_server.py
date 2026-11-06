@@ -18,7 +18,8 @@ from jsonrpcserver.server import RequestHandler, listening_message, serve
 
 @patch("jsonrpcserver.server.ThreadingHTTPServer")
 def test_serve(server: Mock) -> None:
-    serve()
+    with pytest.warns(FutureWarning, match="From 6.0 it will listen on localhost"):
+        serve()
     server.assert_called_once_with(("", 5000), RequestHandler)
     server.return_value.serve_forever.assert_called_once_with()
     server.return_value.server_close.assert_called_once_with()
@@ -34,7 +35,7 @@ def test_serve_name_and_port(server: Mock) -> None:
 def test_serve_closes_on_interrupt(server: Mock) -> None:
     server.return_value.serve_forever.side_effect = KeyboardInterrupt
     with pytest.raises(KeyboardInterrupt):
-        serve()
+        serve("", 5000)
     server.return_value.server_close.assert_called_once_with()
 
 

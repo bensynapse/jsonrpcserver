@@ -4,6 +4,7 @@ requests, providing responses.
 
 import logging
 import reprlib
+import warnings
 from functools import partial
 from inspect import iscoroutine, signature
 from itertools import starmap
@@ -387,6 +388,17 @@ def check_max_batch_size(max_batch_size: object) -> None:
         )
 
 
+def warn_if_over_6_0_batch_limit(size: int, max_batch_size: Optional[int]) -> None:
+    """Warn when a batch would get an error under 6.0's default limit of 100."""
+    if max_batch_size is None and size > 100:
+        warnings.warn(
+            f"This batch has {size} requests. 6.0 limits batches to 100 by default. "
+            "Pass max_batch_size=None to keep no limit, or set the limit you want.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+
 def member_id(member: Any) -> Any:
     """The id of a batch member, or None if it has none we can use.
 
@@ -453,6 +465,7 @@ def dispatch_to_response_pure(
             return post_process(Left(parsed._error))
         deserialized = unwrap(parsed)
         if isinstance(deserialized, list) and deserialized:
+            warn_if_over_6_0_batch_limit(len(deserialized), max_batch_size)
             if max_batch_size is not None and len(deserialized) > max_batch_size:
                 return post_process(
                     Left(BatchTooLargeResponse(len(deserialized), max_batch_size))
