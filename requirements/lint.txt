@@ -1,7 +1,7 @@
-hypothesis==6.170.12
-mypy==2.4.0
+hypothesis==6.170.14
+mypy==2.4.1
 pyright==1.1.414
-pytest==9.1.1
-pytest-asyncio==1.4.1
+pytest==9.2.0
+pytest-asyncio==1.4.1.post1
 ruff==0.17.3
 types-jsonschema==4.26.0.20261006
