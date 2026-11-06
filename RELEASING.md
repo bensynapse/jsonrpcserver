@@ -90,8 +90,30 @@ whose version reached PyPI.
 
 ## Docs
 
-The docs site deploys from `.github/workflows/docs.yml` when a release tag is
-pushed, so it always describes the version on PyPI. To publish a docs-only fix
-between releases, run the Docs workflow by hand on main. If main is ahead of
-PyPI by then, set `unreleased` in mkdocs.yml first, so a banner says so.
+The docs site has one copy of the docs per release line, listed in `LINES` in
+`.github/scripts/build_versions.py`. Each line is built from its newest
+release tag. The newest line with a final release is the stable one. Its docs
+are at the site root, like https://bensynapse.github.io/jsonrpcserver/migration/,
+and also in its own folder. Every other line is in a folder like `/5.x/` or
+`/6.0/`. A line with only pre-release tags is labelled, as in
+"6.0 (release candidate)". A menu in the header switches between them.
+
+Search engines only see the root copy. The copies in folders have canonical
+links and sitemaps that point at the root, and `build_versions.py` stops the
+build if one doesn't.
+
+`.github/workflows/docs.yml` rebuilds every line and deploys when any `v*` tag
+is pushed. A tag on `release/5.x` starts the Docs workflow on main, through the
+`docs.yml` on that branch. So a 5.x release never removes the 6.0 docs, and
+the other way round.
+
+- When 6.0.0 is tagged, the root switches to 6.0 by itself, and the 5.x docs
+  stay at `/5.x/`. Nothing needs editing.
+- For a new line, like 6.1, add it at the top of `LINES`.
+- To publish a docs-only fix between releases, run the Docs workflow by hand
+  on main (Actions, Docs, Run workflow) with `from_branch` set to the version,
+  like `5.x`. That version is then built from its branch (`release/5.x` or
+  `main`). If the branch is ahead of PyPI by then, set `unreleased` in its
+  mkdocs.yml first, so a banner says so.
+
 The docs also mark features with "New in" or "Changed in" notes.

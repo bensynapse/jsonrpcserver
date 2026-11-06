@@ -1,20 +1,39 @@
 name: Docs
 
-# The site describes the release on PyPI, so it deploys when a release tag is
-# pushed, not on every merge to main. To publish a docs-only fix between
-# releases, run this workflow by hand on main (Actions, Docs, Run workflow).
-# A pre-release tag (v6.0.0rc1, v6.0.0b1, v6.0.0a1) doesn't deploy, so the site
-# keeps describing the version that pip installs by default.
+# The site has one copy of the docs per release line, built from that line's
+# newest release tag by .github/scripts/build_versions.py. The stable line is
+# also at the site root, so old links keep working. Any release tag rebuilds
+# every line, so a 5.x release never removes the 6.0 docs or the other way
+# round. Tags pushed on release/5.x start this workflow on main through that
+# branch's docs.yml.
+#
+# A pre-release tag (v6.0.0rc1) deploys too. Its docs sit in their own folder
+# under a "release candidate" label, and the root stays on the stable release.
+#
+# To publish a docs-only fix between releases, run this workflow by hand on
+# main with from_branch set to the version, like 5.x. RELEASING.md explains.
+# A pull request that changes how the site is built builds it without deploying.
 on:
   push:
-    tags: ["v*", "!v*rc*", "!v*a[0-9]*", "!v*b[0-9]*"]
+    tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      from_branch:
+        description: Build this version from its branch instead of its tag (5.x or 6.0). Empty builds every version from tags.
+        required: false
+        default: ""
+  pull_request:
+    paths:
+      - .github/workflows/docs.yml
+      - .github/scripts/build_versions.py
+      - .github/scripts/version-selector.js
+      - .github/scripts/check_site.py
 
 permissions:
   contents: read
 
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
   cancel-in-progress: false
 
 jobs:
@@ -24,16 +43,36 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Every tag and branch, to find each line's newest release.
+          fetch-depth: 0
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - run: python -m pip install -r requirements/docs.txt
-      - run: mkdocs build --strict
+      - run: python -m pip install -r requirements/docs.txt -r requirements/site.txt
+      - name: Build every version
+        env:
+          FROM_BRANCH: ${{ inputs.from_branch }}
+        run: python .github/scripts/build_versions.py site --from-branch "$FROM_BRANCH"
+      # The same browser check as CI's site job, on the assembled site. It also
+      # checks the version menu, the notice and every version's home page.
+      - run: python -m playwright install --with-deps chromium
+      - name: Download axe-core and check its hash
+        env:
+          AXE_VERSION: "4.14.0"
+          AXE_SHA512: "9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ=="
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/axe.tgz" "https://registry.npmjs.org/axe-core/-/axe-core-$AXE_VERSION.tgz"
+          echo "$AXE_SHA512" | base64 -d > "$RUNNER_TEMP/expected.bin"
+          openssl dgst -sha512 -binary "$RUNNER_TEMP/axe.tgz" | cmp - "$RUNNER_TEMP/expected.bin"
+          tar -xzf "$RUNNER_TEMP/axe.tgz" -C "$RUNNER_TEMP" package/axe.min.js
+      - run: python .github/scripts/check_site.py site "$RUNNER_TEMP/package/axe.min.js"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        if: github.event_name != 'pull_request'
         with:
           path: site
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-24.04
     permissions:
