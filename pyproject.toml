@@ -33,10 +33,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
-# jsonschema goes in the next 6.0 increment (plans/6.0.md, D4).
-dependencies = [
-    "jsonschema<5",
-]
+# None. 6.0 checks requests itself (jsonrpcserver/validator.py).
+dependencies = []
 
 [project.urls]
 Homepage = "https://bensynapse.github.io/jsonrpcserver/"

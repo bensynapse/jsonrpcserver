@@ -1,6 +1,9 @@
-# Unpinned on purpose: the test matrix runs 3.8 to 3.14, and pip picks the
+# Unpinned on purpose: the test matrix runs 3.11 to 3.14, and pip picks the
 # newest release that supports each interpreter.
 pytest
 pytest-asyncio
 pytest-cov
 hypothesis
+# Only for tests/test_validator.py, which checks the built-in validator
+# against the JSON Schema that 5.x used.
+jsonschema

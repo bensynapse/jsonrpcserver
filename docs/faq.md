@@ -69,8 +69,8 @@ See [Threads](threads.md).
 
 ## How do I turn off request validation?
 
-Pass `validator=lambda _: None`. It saves time, but bad requests then get odd
-answers. See [Validation](validation.md#turning-it-off).
+Pass `validator=lambda _: None`. From 6.0 it saves little time, and bad
+requests then get odd answers. See [Validation](validation.md#turning-it-off).
 
 ## Can I use orjson or ujson?
 
