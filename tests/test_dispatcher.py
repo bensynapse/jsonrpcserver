@@ -1,7 +1,4 @@
-"""Test dispatcher.py
-
-TODO: Add tests for dispatch_requests (non-pure version)
-"""
+"""Test dispatcher.py"""
 
 import json
 from typing import Any, Callable, Dict
