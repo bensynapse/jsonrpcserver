@@ -49,13 +49,10 @@ have.
 pip install jsonrpcserver
 ```
 
-The latest release on PyPI is 5.0.9. This README and the documentation
-describe 5.0.10, which isn't released yet. 5.0.9 sends exception messages to
-clients. The
-[Security page](https://bensynapse.github.io/jsonrpcserver/security/#if-you-are-on-509)
-shows how to stop that, and the
-[changelog](https://bensynapse.github.io/jsonrpcserver/changelog/) lists the
-other differences.
+If you're on 5.0.9 or older, upgrade: those versions send exception messages
+to clients. The
+[changelog](https://bensynapse.github.io/jsonrpcserver/changelog/) lists what
+changed in 5.0.10.
 
 ## Quickstart
 
@@ -94,8 +91,7 @@ pass the request body to `dispatch` and send back the string it returns. The
 ## Security
 
 Before you put a server on the internet, pass `max_batch_size` to `dispatch`
-and limit the request body size in your framework. Upgrade to 5.0.10 when
-it's out. The
+and limit the request body size in your framework. Run 5.0.10 or later. The
 [Security page](https://bensynapse.github.io/jsonrpcserver/security/)
 explains why.
 

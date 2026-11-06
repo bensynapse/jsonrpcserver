@@ -10,15 +10,15 @@ things to know before you put a server on the internet.
 ## If you are on 5.0.9
 
 !!! danger "5.0.9 sends exception messages to the client"
-    These docs describe 5.0.10, which isn't on PyPI yet.
-    `pip install jsonrpcserver` gives you 5.0.9. In 5.0.9, when a method
+    5.0.10 fixes this. Upgrade with `pip install -U jsonrpcserver`. In 5.0.9
+    and earlier 5.x releases, when a method
     raises an exception it doesn't catch, the client gets the exception's
     message in `error.data`. Messages from database drivers and HTTP clients
     often contain connection strings, passwords, hostnames, file paths or SQL.
 
     Check your version with `pip show jsonrpcserver`.
 
-Until you can upgrade, wrap each method so that it catches unexpected
+If you can't upgrade yet, wrap each method so that it catches unexpected
 exceptions itself, logs them and returns a plain Internal error:
 
 ```python
@@ -64,8 +64,7 @@ async methods, write the same wrapper with `async def` and `await`.
 
 The wrapper can't cover one case. An exception inside jsonrpcserver itself,
 outside your method, still sends its message in a -32000 "Server error". That needs a bug in jsonrpcserver or in a custom
-`validator`, so it's rare. Upgrade to 5.0.10 when it's out, and then remove
-the wrapper.
+`validator`, so it's rare. Upgrade to 5.0.10, and then remove the wrapper.
 
 5.0.9 also lacks `max_batch_size`, so limit the request body size in your web
 server (see below). It sends `NaN` and `Infinity` in responses, which strict
