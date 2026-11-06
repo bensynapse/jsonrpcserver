@@ -1,15 +1,13 @@
 # Changelog
 
-## 5.0.10 (not released yet)
+## 5.0.10 (2026-11-06)
 
 The first release since the project moved to
 [bensynapse/jsonrpcserver](https://github.com/bensynapse/jsonrpcserver). It
 fixes a security problem, so please upgrade. Code that works with 5.0.9 keeps
 working, apart from the security fix and the "Behaviour changes" below. The
 [migration guide](https://bensynapse.github.io/jsonrpcserver/migration/#from-509-to-5010)
-lists what you might notice. Until it's on PyPI, the
-[Security page](https://bensynapse.github.io/jsonrpcserver/security/#if-you-are-on-509)
-shows how to protect a 5.0.9 server.
+lists what you might notice.
 
 ### Security
 

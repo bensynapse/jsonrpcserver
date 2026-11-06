@@ -48,11 +48,6 @@ theme:
         icon: material/brightness-4
         name: Switch to system preference
 extra:
-  # The version these docs describe while it isn't on PyPI yet. It shows a
-  # banner on every page. Remove it when that version is released (see
-  # RELEASING.md).
-  unreleased: "5.0.10"
-  pypi_version: "5.0.9"
   social_image: assets/social-card.png
   # Ownership tokens for Google Search Console and Bing Webmaster Tools.
   # Both services re-check them, so leave them in after verification.
