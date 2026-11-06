@@ -46,7 +46,9 @@ Settings → Environments → pypi.
    The release workflow checks the first three. It stops if the version and
    tag don't match or the CHANGELOG heading has no date. It also stops if
    mkdocs.yml or README.md still say the version isn't released.
-2. Tag the merge commit on main and push the tag:
+2. Wait until CI has passed on the merge commit. Then tag it and push the tag.
+   The release workflow refuses a commit that isn't on main or a `release/`
+   branch, and one that "CI OK" hasn't passed on:
 
    ```sh
    git fetch origin
