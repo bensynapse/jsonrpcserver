@@ -177,7 +177,7 @@ dispatch('{"jsonrpc": "2.0", "method": "ping", "id": 1}', serializer=ujson.dumps
 ### validator
 
 The function that checks each request against the JSON-RPC spec, after
-parsing. The default checks against a JSON schema. [Validation](validation.md)
+parsing. The default checks the JSON-RPC 2.0 rules. [Validation](validation.md)
 says what it checks, how to write your own, and what you lose by turning it
 off.
 

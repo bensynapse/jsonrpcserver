@@ -12,11 +12,8 @@ They differ only in the form of the response:
 
 import json
 import logging
-import pkgutil
 from collections.abc import Callable
 from typing import Any, cast
-
-from jsonschema.validators import validator_for
 
 from .codes import ERROR_INTERNAL_ERROR
 from .dispatcher import (
@@ -39,6 +36,7 @@ from .response import (
 )
 from .sentinels import NOCONTEXT, NODATA
 from .utils import identity
+from .validator import default_validator as default_validator
 
 logger = logging.getLogger(__name__)
 
@@ -103,18 +101,6 @@ def serialize(
                 + "]"
             )
         return serialize_one(serializer, response, debug)
-
-
-# Prepare the jsonschema validator. This is global so it loads only once, not every
-# time dispatch is called.
-# pkgutil.get_data works on every supported Python, and inside zip files and frozen
-# apps. importlib.resources.read_text is deprecated on 3.11 and 3.12.
-schema = json.loads(
-    pkgutil.get_data(__name__.rpartition(".")[0], "request-schema.json") or b""
-)
-klass = validator_for(schema)
-klass.check_schema(schema)
-default_validator = klass(schema).validate
 
 
 def dispatch_to_response(

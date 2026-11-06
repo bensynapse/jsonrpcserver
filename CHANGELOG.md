@@ -21,8 +21,17 @@ on the `release/5.x` branch.
   `jsonrpcserver.dispatcher`. Without the oslash wrappers there's no invalid
   Result: a method's return value is its result.
 
+- The default validator checks the JSON-RPC 2.0 rules itself instead of using
+  jsonschema. It accepts and rejects the same requests, which a test checks on
+  500 generated requests and a list of edge cases. Dispatching a small method
+  takes about 9.6 microseconds instead of 43 (Python 3.13). Its error is
+  `jsonrpcserver.validator.InvalidRequestError`, with a message that says what's
+  wrong. The client still gets the same -32600 response.
+
 ### Removed
 
+- The jsonschema dependency, and `jsonrpcserver/request-schema.json`. 6.0 has no
+  runtime dependencies.
 - The oslash dependency, and with it the mypy setting `typing.md` asked for.
 - Python 3.8, 3.9 and 3.10, which have reached end of life. 6.0 needs Python
   3.11 or later. Older Pythons keep installing 5.x.
