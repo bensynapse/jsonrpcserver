@@ -1,8 +1,81 @@
 ---
-description: Upgrade jsonrpcserver from 4.x to 5.x, from 5.0.9 to 5.0.10, and to 5.1.0. Side-by-side examples, removed options, and plain return values, which work again from 5.1.0.
+description: Upgrade jsonrpcserver from 5.x to 6.0, from 4.x to 5.x, and from 5.0.9 to 5.0.10. What changed in 6.0, with the replacement for each removed name, and side-by-side examples for 4.x code.
 ---
 
 # Migration
+
+## From 5.x to 6.0
+
+Code that registers methods with `@method`, returns `Success(...)`,
+`Error(...)` or a plain value, and calls `dispatch` or `async_dispatch` keeps
+working. A test in the repository pins that. The rest of this section lists
+everything that changed, so you can check your own code against it.
+
+### Python 3.11 or later
+
+6.0 needs Python 3.11 or later. 3.8, 3.9 and 3.10 have reached end of life.
+On an older Python, `pip install jsonrpcserver` keeps installing 5.x.
+
+### Results and responses are dataclasses
+
+5.x built results and responses on the oslash library's `Right` and `Left`.
+6.0 has no dependencies, and they're plain frozen dataclasses:
+
+| 5.x | 6.0 |
+|---|---|
+| `Success(x)` is a `Right` holding a `SuccessResult` | `Success(x)` is a `SuccessResult` |
+| `Error(...)` is a `Left` holding an `ErrorResult` | `Error(...)` is an `ErrorResult` |
+| `isinstance(response, Left)` | `isinstance(response, ErrorResponse)` |
+| `response._value.result` | `response.result` |
+| `response._error.code` | `response.code` |
+| `from oslash.either import Left, Right` | not needed |
+| a mypy setting for oslash | not needed |
+
+Code that reads responses from `dispatch_to_response`, or that a
+`post_process` function receives, needs the change in the table. Code that
+only uses `dispatch`, `async_dispatch` or `dispatch_to_serializable` doesn't.
+
+`InvalidResultError`, `validate_result` and `log_invalid_result` are gone
+from `jsonrpcserver.dispatcher`. Without the wrappers there's no invalid
+Result left: whatever a method returns is its result.
+
+### Requests are checked without jsonschema
+
+The default validator checks the same rules as before, without the
+jsonschema library. It raises
+`jsonrpcserver.validator.InvalidRequestError`, and the client gets the same
+-32600 response. `jsonrpcserver/request-schema.json` is gone. If you
+imported it, copy it from 5.x. Dispatching is about four times faster for a
+small method.
+
+### Safer defaults
+
+| | 5.x | 6.0 | To get the 5.x behaviour |
+|---|---|---|---|
+| Batch size | no limit | 100 requests | `max_batch_size=None` |
+| `NaN`, `Infinity`, `1e400` in a request | accepted | -32700 Parse error | `deserializer=json.loads` |
+| `Error` or `JsonRpcError` with a non-integer code or a non-string message | `UserWarning`, sent as given | `TypeError` | none: fix the code or message |
+| `@method` name starting with `rpc.` | `UserWarning`, added | `ValueError` | none: rename the method |
+| `serve()` with no host | every network interface | localhost only | `serve("", port)` |
+
+`dispatch_to_response` used `json.loads` as its default deserializer, unlike
+the other dispatch functions. It uses the same default as them now.
+
+### Removed names
+
+| Removed | Use |
+|---|---|
+| `jsonrpcserver.response.serialize_error` | `to_error_dict` |
+| `jsonrpcserver.response.serialize_success` | `to_success_dict` |
+| `jsonrpcserver.response.to_serializable_one`, `jsonrpcserver.main.to_serializable_one` | `to_dict` |
+| `jsonrpcserver.response.ResponseType` | `Response` |
+
+All four gave a `DeprecationWarning` from 5.0.10.
+
+### New
+
+`max_concurrency` on the async dispatch functions limits how many requests of
+a batch run at once. See [Async](async.md#limit-how-many-run-at-once).
 
 ## From 4.x to 5.x
 
