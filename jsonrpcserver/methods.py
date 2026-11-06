@@ -7,7 +7,8 @@ your own dict instead, pass it as the methods argument:
     dispatch(request)  # the functions registered with @method
     dispatch(request, methods={"ping": ping})  # only the functions in this dict
 
-Either way, a method returns Success(...) or Error(...), not a plain value.
+Either way, a method returns Success(...) or Error(...). From 5.1.0 it can also
+return a plain value, which becomes Success(value).
 
 A request's params are either a list (positional arguments) or an object (named
 arguments), not both. That's a JSON-RPC rule.

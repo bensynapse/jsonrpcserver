@@ -158,10 +158,11 @@ def test_serializer_that_always_fails() -> None:
 
 
 def test_builtin_without_signature() -> None:
-    """max has no signature inspect can read. It used to collapse the batch."""
+    """max has no signature inspect can read. It used to collapse the batch. From
+    5.1.0 its plain return value is the result."""
     batch = [{**request("max", 1), "params": [1, 2]}, request("ping", 2)]
     assert json.loads(dispatch(json.dumps(batch), METHODS)) == [
-        {"jsonrpc": "2.0", "error": INTERNAL_ERROR, "id": 1},
+        {"jsonrpc": "2.0", "result": 2, "id": 1},
         {"jsonrpc": "2.0", "result": "pong", "id": 2},
     ]
 
@@ -290,9 +291,10 @@ def test_invalid_result_under_optimize_flag() -> None:
         "import json, logging\n"
         "logging.disable(logging.CRITICAL)\n"
         "from jsonrpcserver import dispatch, Success\n"
+        "from oslash.either import Right\n"
         "batch = [{'jsonrpc': '2.0', 'method': 'none', 'id': 1},"
         " {'jsonrpc': '2.0', 'method': 'ping', 'id': 2}]\n"
-        "methods = {'none': lambda: None, 'ping': lambda: Success('pong')}\n"
+        "methods = {'none': lambda: Right(None), 'ping': lambda: Success('pong')}\n"
         "print(dispatch(json.dumps(batch), methods))\n"
     )
     output = subprocess.run(

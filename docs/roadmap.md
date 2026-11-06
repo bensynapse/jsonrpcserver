@@ -6,6 +6,8 @@ description: The plan for jsonrpcserver 6.0. Results without oslash, safer defau
 
 This is the plan for the next major version. Nothing here is released yet, and
 it may change. 5.x keeps its current API, and gets bug and security fixes.
+5.1.0 took one idea from this list early: a method can return a plain value
+(#285).
 
 Discussion happens in the
 [issues](https://github.com/bensynapse/jsonrpcserver/issues) and
@@ -51,7 +53,6 @@ five request fields would be faster and lighter.
 
 **Ideas under discussion.**
 
-- Let a method return a plain value instead of `Success(value)` (#285).
 - Middleware around method calls (#126). Decorators on your own functions
   already cover most uses.
 - OpenRPC schema generation (#156), probably as a separate package.

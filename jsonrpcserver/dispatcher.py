@@ -32,6 +32,7 @@ from .result import (
     InvalidParamsResult,
     MethodNotFoundResult,
     Result,
+    Success,
     SuccessResult,
 )
 from .sentinels import NOCONTEXT, NODATA, NOID, Sentinel
@@ -114,12 +115,13 @@ def extract_kwargs(request: Request) -> Dict[str, Any]:
 
 
 class InvalidResultError(AssertionError):
-    """A method returned something other than Success(...) or Error(...)."""
+    """A method returned an oslash `Left` or `Right`, or a result object, that isn't a
+    Result made by Success(...) or Error(...)."""
 
     def __init__(self, result: object):
         super().__init__(
             f"The method did not return a valid Result (returned {result!r}). "
-            "Return Success(value) or Error(code, message)."
+            "Return a value, Success(value) or Error(code, message)."
         )
         self.result = result
 
@@ -143,19 +145,36 @@ def validate_result(result: object) -> None:
         raise InvalidResultError(returned)
 
 
+def to_result(result: object) -> Result:
+    """The Result for what a method returned.
+
+    A plain value becomes `Success(value)`, so `return "pong"` and
+    `return Success("pong")` send the same response. A Result made by `Success` or
+    `Error` is used as it is. An oslash `Left` or `Right` that holds something else,
+    or a bare `SuccessResult` or `ErrorResult`, raises InvalidResultError, because
+    it is nearly always a mistake, not a value meant for the client.
+
+    New in 5.1.0. Before it, any plain value gave the client an Internal error.
+    """
+    returned = result  # Not narrowed: oslash's Left and Right are generic.
+    if isinstance(result, (Left, Right, SuccessResult, ErrorResult)):
+        validate_result(returned)
+        return cast(Result, returned)
+    return Success(result)
+
+
 def log_invalid_result(
     method_name: str, exc: InvalidResultError, log: logging.Logger
 ) -> None:
-    """Log a method that returned a plain value, which 4.x allowed, without a traceback.
+    """Log a method that returned an invalid Result, without a traceback.
 
     The traceback would only point into jsonrpcserver, so the message says what to
     change instead.
     """
     log.error(
-        "Method %r returned %s, which is not a Result, so the client got an "
-        "Internal error. Return Success(value) or Error(code, message). Since 5.0 a "
-        "plain return value is not enough: "
-        "https://bensynapse.github.io/jsonrpcserver/migration/",
+        "Method %r returned %s, which is not a valid Result, so the client got an "
+        "Internal error. Return a value, Success(value) or Error(code, message): "
+        "https://bensynapse.github.io/jsonrpcserver/methods/",
         method_name,
         reprlib.repr(exc.result),
     )
@@ -188,10 +207,10 @@ def call(
                 f"Method {request.method!r} is async. Use async_dispatch to call "
                 "async methods."
             )
-        # validate_result raises AssertionError if the return value is not a valid
-        # Result, which should respond with Internal Error because its a problem in the
-        # method.
-        validate_result(result)
+        # A plain value becomes Success(value). to_result raises InvalidResultError,
+        # an AssertionError, for an invalid Result, which gets an Internal error
+        # because it's a problem in the method.
+        result = to_result(result)
     # Raising JsonRpcError inside the method is an alternative way of returning an error
     # response.
     except JsonRpcError as exc:
@@ -203,8 +222,7 @@ def call(
     except Exception as exc:
         logger.exception("Method %r raised an exception", request.method)
         return Left(InternalErrorResult(exception_data(exc, debug)))
-    # validate_result has checked it.
-    return cast(Result, result)
+    return result
 
 
 def validate_args(

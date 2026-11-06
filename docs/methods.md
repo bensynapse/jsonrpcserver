@@ -47,11 +47,18 @@ A method returns `Success` or `Error`. They are the `result` and `error` parts
 of a [JSON-RPC response](https://www.jsonrpc.org/specification#response_object).
 jsonrpcserver adds the `jsonrpc` and `id` parts.
 
-!!! warning "Return `Success(value)`, not the value"
-    In 4.x a method returned its result directly. In 5.x, `return "pong"`
-    sends the client a -32603 "Internal error". From 5.0.10 the response
-    has no details, and the log says what went wrong. See
-    [Migration](migration.md).
+A method can also return its value directly. `return "pong"` sends the same
+response as `return Success("pong")`:
+
+```pycon
+>>> dispatch('{"jsonrpc": "2.0", "method": "count", "id": 1}', {"count": lambda: 3})
+'{"jsonrpc": "2.0", "result": 3, "id": 1}'
+```
+
+!!! info "New in 5.1.0"
+    Plain return values. From 5.0.0 to 5.0.10, `return "pong"` sent the client
+    a -32603 "Internal error". If your code has to run on those versions too,
+    return `Success(value)`. See [Migration](migration.md).
 
 `Success` takes the result value. If there's nothing to return, call it with
 no argument and the result is `null`:

@@ -49,6 +49,7 @@ from jsonrpcserver.response import (
 )
 from jsonrpcserver.result import (
     ErrorResult,
+    InternalErrorResult,
     InvalidParams,
     Result,
     Success,
@@ -512,10 +513,11 @@ def test_dispatch_to_response_pure_server_error(
 
 
 def test_dispatch_to_response_pure_invalid_result() -> None:
-    """Methods should return a Result, otherwise we get an Internal Error response."""
+    """A bare SuccessResult, not wrapped by Success(), gets an Internal Error
+    response. A plain value is fine from 5.1.0."""
 
-    def not_a_result() -> None:
-        return None
+    def not_a_result() -> object:
+        return SuccessResult(None)
 
     assert dispatch_to_response_pure(
         deserializer=default_deserializer,
@@ -529,21 +531,36 @@ def test_dispatch_to_response_pure_invalid_result() -> None:
         ErrorResponse(
             ERROR_INTERNAL_ERROR,
             "Internal error",
-            "The method did not return a valid Result (returned None). "
-            "Return Success(value) or Error(code, message).",
+            "The method did not return a valid Result "
+            "(returned SuccessResult(None)). "
+            "Return a value, Success(value) or Error(code, message).",
             1,
         )
     )
 
 
-def test_plain_return_value_is_logged_with_a_hint(
+@pytest.mark.parametrize("value", ["pong", None, 0, [1, 2], {"a": 1}, False])
+def test_plain_return_value_becomes_success(value: object) -> None:
+    """A method can return its value directly (5.1.0, #285)."""
+    response = dispatch_to_response_pure(
+        deserializer=default_deserializer,
+        validator=default_validator,
+        post_process=identity,
+        context=NOCONTEXT,
+        methods={"ping": lambda: value},
+        request='{"jsonrpc": "2.0", "method": "ping", "id": 1}',
+    )
+    assert response == Right(SuccessResponse(value, 1))
+
+
+def test_invalid_result_is_logged_with_a_hint(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """A 4.x-style method that returns a plain value gets a log line saying what to do,
-    not a traceback into jsonrpcserver."""
+    """An oslash Right that doesn't hold a SuccessResult is a mistake, not a value. It
+    gets a log line saying what to do, not a traceback into jsonrpcserver."""
 
-    def ping() -> str:
-        return "pong"
+    def ping() -> object:
+        return Right[str, Any]("pong")
 
     response = dispatch_to_response_pure(
         deserializer=default_deserializer,
@@ -559,9 +576,21 @@ def test_plain_return_value_is_logged_with_a_hint(
     (record,) = caplog.records
     assert record.levelname == "ERROR"
     assert record.exc_info is None
-    assert record.getMessage().startswith(
-        "Method 'ping' returned 'pong', which is not a Result, so the client got an "
-        "Internal error. Return Success(value) or Error(code, message)."
+    assert "which is not a valid Result, so the client got an Internal error. " in (
+        record.getMessage()
+    )
+    assert "Return a value, Success(value) or Error(code, message)" in (
+        record.getMessage()
+    )
+
+
+@pytest.mark.parametrize(
+    "returned",
+    [SuccessResult("pong"), ErrorResult(1, "x"), Left[Any, str]("oops")],
+)
+def test_bare_result_objects_are_invalid(returned: object) -> None:
+    assert call(Request("ping", [], 1), NOCONTEXT, lambda: returned) == Left(
+        InternalErrorResult(NODATA)
     )
 
 

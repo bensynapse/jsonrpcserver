@@ -95,11 +95,21 @@ async def test_call_raising_exception_is_logged(
 
 
 @pytest.mark.asyncio
-async def test_plain_return_value_is_logged_with_a_hint(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
+async def test_plain_return_value_becomes_success() -> None:
     async def method() -> str:
         return "pong"
+
+    assert await call(Request("ping", [], 1), NOCONTEXT, method) == Right(
+        SuccessResult("pong")
+    )
+
+
+@pytest.mark.asyncio
+async def test_invalid_result_is_logged_with_a_hint(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def method() -> object:
+        return Right[str, Any]("pong")
 
     assert await call(Request("ping", [], 1), NOCONTEXT, method) == Left(
         ErrorResult(ERROR_INTERNAL_ERROR, "Internal error")
@@ -107,9 +117,7 @@ async def test_plain_return_value_is_logged_with_a_hint(
     (record,) = caplog.records
     assert record.name == "jsonrpcserver.async_dispatcher"
     assert record.exc_info is None
-    assert record.getMessage().startswith(
-        "Method 'ping' returned 'pong', which is not a Result"
-    )
+    assert "which is not a valid Result" in record.getMessage()
 
 
 @pytest.mark.asyncio
