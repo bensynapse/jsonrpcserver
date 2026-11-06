@@ -15,3 +15,13 @@ updates:
     groups:
       python-tools:
         patterns: ["*"]
+
+  # The hook versions in .pre-commit-config.yaml. CI pins its own copies in
+  # requirements/lint.txt, so without this the local hooks drift behind.
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      pre-commit-hooks:
+        patterns: ["*"]
