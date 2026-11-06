@@ -1,8 +1,9 @@
 """Utility functions"""
 
 import warnings
+from collections.abc import Callable
 from functools import reduce
-from typing import Any, Callable, List, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from oslash.either import Either, Right
 
@@ -21,7 +22,7 @@ def compose(*funcs: Callable[..., Any]) -> Callable[..., Any]:
     return reduce(lambda f, g: lambda *a, **kw: f(g(*a, **kw)), funcs)
 
 
-def make_list(x: Any) -> List[Any]:
+def make_list(x: Any) -> list[Any]:
     """Puts a value into a list if it's not already."""
     # pyright can't tell the element type of a list narrowed from Any.
     return x if isinstance(x, list) else [x]  # pyright: ignore[reportUnknownVariableType]

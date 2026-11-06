@@ -6,7 +6,8 @@ async_dispatch_to_response. Methods can be async functions or plain ones. The
 requests in a batch run concurrently.
 """
 
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union, cast
+from collections.abc import Callable, Iterable
+from typing import Any, cast
 
 from .async_dispatcher import dispatch_to_response_pure
 from .dispatcher import Deserialized, check_max_batch_size
@@ -27,15 +28,15 @@ from .utils import identity
 
 async def dispatch_to_response(
     request: str,
-    methods: Optional[MethodsArgument] = None,
+    methods: MethodsArgument | None = None,
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
     debug: bool = False,
-    max_batch_size: Optional[int] = None,
-) -> Union[Response, Iterable[Response], None]:
+    max_batch_size: int | None = None,
+) -> Response | Iterable[Response] | None:
     """Dispatch a request and give the response as Response objects. Async.
 
     The async version of `dispatch_to_response`, imported from the package as
@@ -71,19 +72,19 @@ async def dispatch_to_response(
         debug=debug,
         max_batch_size=max_batch_size,
     )
-    return cast(Union[Response, Iterable[Response], None], response)
+    return cast(Response | Iterable[Response] | None, response)
 
 
 async def dispatch_to_serializable(
     request: str,
-    methods: Optional[MethodsArgument] = None,
+    methods: MethodsArgument | None = None,
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
-    max_batch_size: Optional[int] = None,
-) -> Union[Dict[str, Any], List[Dict[str, Any]], None]:
+    max_batch_size: int | None = None,
+) -> dict[str, Any] | list[dict[str, Any]] | None:
     """Dispatch a request and give the response as a dict. Async.
 
     The async version of `dispatch_to_serializable`, imported from the package as
@@ -106,7 +107,7 @@ async def dispatch_to_serializable(
         ValueError: If `max_batch_size` isn't None or a positive int.
     """
     return cast(
-        Union[Dict[str, Any], List[Dict[str, Any]], None],
+        dict[str, Any] | list[dict[str, Any]] | None,
         await dispatch_to_response(
             request,
             methods,
@@ -122,15 +123,15 @@ async def dispatch_to_serializable(
 
 async def dispatch_to_json(
     request: str,
-    methods: Optional[MethodsArgument] = None,
+    methods: MethodsArgument | None = None,
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
-    max_batch_size: Optional[int] = None,
+    max_batch_size: int | None = None,
     serializer: Callable[
-        [Union[Dict[str, Any], List[Dict[str, Any]], None]], str
+        [dict[str, Any] | list[dict[str, Any]] | None], str
     ] = default_serializer,
 ) -> str:
     """Dispatch a request and give the response as a JSON string. Async.

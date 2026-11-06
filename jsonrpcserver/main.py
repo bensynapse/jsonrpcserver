@@ -13,7 +13,8 @@ They differ only in the form of the response:
 import json
 import logging
 import pkgutil
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 from jsonschema.validators import validator_for
 
@@ -52,7 +53,7 @@ def default_serializer(response: Any) -> str:
 
 
 def serialize_one(
-    serializer: Callable[[Any], str], response: Dict[str, Any], debug: bool
+    serializer: Callable[[Any], str], response: dict[str, Any], debug: bool
 ) -> str:
     """Serialize one response. If that fails, serialize an Internal error for the same
     request instead, so the client still gets a valid JSON-RPC response.
@@ -64,7 +65,7 @@ def serialize_one(
             "Could not serialize the response for request id %r", response.get("id")
         )
         data = exception_data(exc, debug)
-        error: Dict[str, Any] = {
+        error: dict[str, Any] = {
             "jsonrpc": "2.0",
             "error": {
                 "code": ERROR_INTERNAL_ERROR,
@@ -84,7 +85,7 @@ def serialize_one(
 
 def serialize(
     serializer: Callable[[Any], str],
-    response: Union[Dict[str, Any], List[Dict[str, Any]]],
+    response: dict[str, Any] | list[dict[str, Any]],
     debug: bool,
 ) -> str:
     """Serialize a response or batch of responses.
@@ -118,15 +119,15 @@ default_validator = klass(schema).validate
 
 def dispatch_to_response(
     request: str,
-    methods: Optional[MethodsArgument] = None,
+    methods: MethodsArgument | None = None,
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = json.loads,
     validator: Callable[[Deserialized], object] = default_validator,
     post_process: Callable[[Response], Any] = identity,
     debug: bool = False,
-    max_batch_size: Optional[int] = None,
-) -> Union[Response, List[Response], None]:
+    max_batch_size: int | None = None,
+) -> Response | list[Response] | None:
     """Dispatch a request and give the response as Response objects.
 
     Most code wants `dispatch` (a JSON string) or `dispatch_to_serializable` (dicts)
@@ -184,19 +185,19 @@ def dispatch_to_response(
         debug=debug,
         max_batch_size=max_batch_size,
     )
-    return cast(Union[Response, List[Response], None], response)
+    return cast(Response | list[Response] | None, response)
 
 
 def dispatch_to_serializable(
     request: str,
-    methods: Optional[MethodsArgument] = None,
+    methods: MethodsArgument | None = None,
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
-    max_batch_size: Optional[int] = None,
-) -> Union[Dict[str, Any], List[Dict[str, Any]], None]:
+    max_batch_size: int | None = None,
+) -> dict[str, Any] | list[dict[str, Any]] | None:
     """Dispatch a request and give the response as a dict.
 
     Use it when your framework serializes the response itself, such as a Django
@@ -228,7 +229,7 @@ def dispatch_to_serializable(
         {'jsonrpc': '2.0', 'result': 'pong', 'id': 1}
     """
     return cast(
-        Union[Dict[str, Any], List[Dict[str, Any]], None],
+        dict[str, Any] | list[dict[str, Any]] | None,
         dispatch_to_response(
             request,
             methods,
@@ -244,15 +245,15 @@ def dispatch_to_serializable(
 
 def dispatch_to_json(
     request: str,
-    methods: Optional[MethodsArgument] = None,
+    methods: MethodsArgument | None = None,
     *,
     context: Any = NOCONTEXT,
     deserializer: Callable[[str], Deserialized] = default_deserializer,
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
-    max_batch_size: Optional[int] = None,
+    max_batch_size: int | None = None,
     serializer: Callable[
-        [Union[Dict[str, Any], List[Dict[str, Any]], str]], str
+        [dict[str, Any] | list[dict[str, Any]] | str], str
     ] = default_serializer,
 ) -> str:
     """Dispatch a request and give the response as a JSON string.

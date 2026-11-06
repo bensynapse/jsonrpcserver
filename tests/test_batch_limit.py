@@ -1,14 +1,14 @@
 """max_batch_size"""
 
 import json
-from typing import Any, List
+from typing import Any
 
 import pytest
 
 from jsonrpcserver import Result, Success, async_dispatch, dispatch
 from jsonrpcserver.main import dispatch_to_response
 
-calls: List[int] = []
+calls: list[int] = []
 
 
 def ping() -> Result:
@@ -110,7 +110,7 @@ def test_validator_sees_members_not_the_batch() -> None:
     """Since #291 a custom validator gets each member on its own. A batch-level rule
     belongs in max_batch_size.
     """
-    seen: List[Any] = []
+    seen: list[Any] = []
 
     def validator(request: Any) -> None:
         seen.append(request)

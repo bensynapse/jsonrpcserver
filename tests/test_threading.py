@@ -4,7 +4,8 @@ call it at once. CI runs this on free-threaded 3.14t too."""
 import json
 import sys
 import threading
-from typing import Any, Callable, Iterator, List
+from collections.abc import Callable, Iterator
+from typing import Any
 
 import pytest
 
@@ -34,9 +35,9 @@ def double(context: int, value: int) -> Result:
     return Success(context * value)
 
 
-def hammer(work: Callable[[int, int], None]) -> List[str]:
+def hammer(work: Callable[[int, int], None]) -> list[str]:
     """Run work(thread, call) from several threads at once and collect errors."""
-    errors: List[str] = []
+    errors: list[str] = []
     lock = threading.Lock()
     barrier = threading.Barrier(THREADS)
 

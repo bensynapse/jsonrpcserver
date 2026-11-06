@@ -9,7 +9,7 @@ import runpy
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any
 
 import pytest
 
@@ -23,8 +23,8 @@ FILES = [ROOT / "README.md", *sorted(DOCS.rglob("*.md"))]
 CHECKER = runpy.run_path(str(DOCS / "examples" / "check_examples.py"))
 CURL: str = CHECKER["CURL"]
 CURL_OUTPUT: str = CHECKER["CURL_OUTPUT"]
-EXAMPLES: Dict[str, Any] = CHECKER["EXAMPLES"]
-NOT_SERVERS: Set[str] = CHECKER["NOT_SERVERS"]
+EXAMPLES: dict[str, Any] = CHECKER["EXAMPLES"]
+NOT_SERVERS: set[str] = CHECKER["NOT_SERVERS"]
 
 
 @pytest.mark.parametrize("path", FILES, ids=lambda path: str(path.relative_to(ROOT)))
@@ -62,7 +62,7 @@ def test_every_curl_command_is_the_tested_one(path: Path) -> None:
 
 
 def test_every_included_example_is_checked() -> None:
-    included: Set[str] = set()
+    included: set[str] = set()
     for path in DOCS.rglob("*.md"):
         included.update(
             re.findall(r'--8<-- "docs/examples/(\w+\.py)"', path.read_text())
@@ -93,7 +93,7 @@ def test_examples_set_max_batch_size(name: str) -> None:
         assert all("max_batch_size=100" in call for call in calls), calls
 
 
-def public_names() -> List[str]:
+def public_names() -> list[str]:
     return [*jsonrpcserver.__all__, "__version__"]
 
 

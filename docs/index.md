@@ -12,7 +12,7 @@ request, calls your Python function and gives you the response to send back.
 It leaves the networking to you, so it works with any framework or transport:
 Flask, Django, FastAPI, aiohttp, websockets, ZeroMQ and more. It runs sync and
 async methods, ships type hints, and is safe to use from several threads. It
-supports Python 3.8 to 3.14, including free-threaded 3.14t.
+supports Python 3.11 to 3.14, including free-threaded 3.14t.
 
 ## Install
 

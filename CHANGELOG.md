@@ -1,5 +1,16 @@
 # Changelog
 
+## 6.0.0 (not released yet)
+
+6.0 is in development on main. [plans/6.0.md](https://github.com/bensynapse/jsonrpcserver/blob/main/plans/6.0.md)
+lists what changes, and [#320](https://github.com/bensynapse/jsonrpcserver/issues/320) tracks it. 5.x gets fixes
+on the `release/5.x` branch.
+
+### Removed
+
+- Python 3.8, 3.9 and 3.10, which have reached end of life. 6.0 needs Python
+  3.11 or later. Older Pythons keep installing 5.x.
+
 ## 5.1.0 (2026-11-06)
 
 ### Added

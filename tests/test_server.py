@@ -5,8 +5,8 @@ import json
 import logging
 import sys
 import threading
+from collections.abc import Iterator
 from http.server import ThreadingHTTPServer
-from typing import Dict, Iterator, Optional, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
@@ -79,9 +79,10 @@ def test_serve_prints_where_it_listens_without_logging(
 @patch("jsonrpcserver.server.ThreadingHTTPServer")
 def test_serve_without_stderr(server: Mock) -> None:
     """sys.stderr is None in a PyInstaller app built with --noconsole (#269)."""
-    with patch.object(
-        server_module.logger, "hasHandlers", return_value=False
-    ), patch.object(sys, "stderr", None):
+    with (
+        patch.object(server_module.logger, "hasHandlers", return_value=False),
+        patch.object(sys, "stderr", None),
+    ):
         serve("localhost", 8000)
     server.return_value.serve_forever.assert_called_once_with()
 
@@ -102,8 +103,8 @@ def port() -> Iterator[int]:
 
 
 def post(
-    port: int, body: Optional[bytes], headers: Optional[Dict[str, str]] = None
-) -> Tuple[int, bytes, Optional[str]]:
+    port: int, body: bytes | None, headers: dict[str, str] | None = None
+) -> tuple[int, bytes, str | None]:
     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
     try:
         if body is None:

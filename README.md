@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://pypi.org/project/jsonrpcserver/"><img src="https://img.shields.io/pypi/v/jsonrpcserver.svg" alt="PyPI version" /></a>
   <a href="https://github.com/bensynapse/jsonrpcserver/actions/workflows/ci.yml"><img src="https://github.com/bensynapse/jsonrpcserver/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://bensynapse.github.io/jsonrpcserver/#install"><img src="https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue" alt="Python 3.8 to 3.14" /></a>
+  <a href="https://bensynapse.github.io/jsonrpcserver/#install"><img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue" alt="Python 3.11 to 3.14" /></a>
   <a href="https://pypistats.org/packages/jsonrpcserver"><img src="https://img.shields.io/pypi/dm/jsonrpcserver" alt="Downloads per month" /></a>
   <a href="https://github.com/bensynapse/jsonrpcserver/blob/main/LICENSE"><img src="https://img.shields.io/github/license/bensynapse/jsonrpcserver" alt="License: MIT" /></a>
 </p>
@@ -40,7 +40,7 @@ have.
   batch size with `max_batch_size` (from 5.0.10).
 - Typed: ships `py.typed`, and `@method` keeps your functions' signatures for
   mypy and pyright.
-- Safe to call from several threads, and tested on Python 3.8 to 3.14,
+- Safe to call from several threads, and tested on Python 3.11 to 3.14,
   including free-threaded 3.14t.
 
 ## Install

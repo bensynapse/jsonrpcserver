@@ -32,18 +32,15 @@ import socket
 import subprocess
 import sys
 import time
-from contextlib import contextmanager, nullcontext, redirect_stdout
-from pathlib import Path
-from typing import (
-    Any,
-    ContextManager,
-    Dict,
-    Generator,
-    List,
-    NamedTuple,
-    Optional,
-    Tuple,
+from collections.abc import Generator
+from contextlib import (
+    AbstractContextManager,
+    contextmanager,
+    nullcontext,
+    redirect_stdout,
 )
+from pathlib import Path
+from typing import Any, NamedTuple
 
 QUICKSTART = Path(__file__).parent.parent / "docs" / "examples" / "quickstart.py"
 PORT = 8000
@@ -57,11 +54,11 @@ MARKER = re.compile(r"^<!--\s*(requires|min-python|server|skip)(?::\s*(.+?))?\s*
 class Block(NamedTuple):
     line: int
     code: str
-    markers: List[str]
-    output: Optional[str]
+    markers: list[str]
+    output: str | None
 
 
-def fenced(lines: List[str], i: int) -> Tuple[str, str, List[str], int]:
+def fenced(lines: list[str], i: int) -> tuple[str, str, list[str], int]:
     """Read the fenced block starting at line i.
 
     Return its language, the rest of the opening line, its body without the
@@ -70,7 +67,7 @@ def fenced(lines: List[str], i: int) -> Tuple[str, str, List[str], int]:
     match = FENCE.match(lines[i])
     assert match
     indent, language, rest = match.groups()
-    body: List[str] = []
+    body: list[str] = []
     i += 1
     while i < len(lines) and not FENCE.match(lines[i]):
         line = lines[i]
@@ -79,8 +76,8 @@ def fenced(lines: List[str], i: int) -> Tuple[str, str, List[str], int]:
     return language, rest, body, i + 1
 
 
-def python_blocks(text: str) -> List[Block]:
-    blocks: List[Block] = []
+def python_blocks(text: str) -> list[Block]:
+    blocks: list[Block] = []
     lines = text.splitlines()
     i = 0
     while i < len(lines):
@@ -90,7 +87,7 @@ def python_blocks(text: str) -> List[Block]:
         start = i
         language, _, body, i = fenced(lines, i)
         if language in ("python", "py", "pycon"):
-            markers: List[str] = []
+            markers: list[str] = []
             j = start - 1
             while j >= 0 and MARKER.match(lines[j].strip()):
                 markers.append(lines[j].strip())
@@ -100,7 +97,7 @@ def python_blocks(text: str) -> List[Block]:
     return blocks
 
 
-def output_after(lines: List[str], i: int) -> Optional[str]:
+def output_after(lines: list[str], i: int) -> str | None:
     """Return the text of an "Output" block that starts at or after line i."""
     while i < len(lines) and not lines[i].strip():
         i += 1
@@ -160,14 +157,14 @@ def quickstart_server() -> Generator[None, None, None]:
         server.wait(10)
 
 
-def server_for(block: Block) -> ContextManager[None]:
+def server_for(block: Block) -> AbstractContextManager[None]:
     if "<!-- server -->" in block.markers:
         return quickstart_server()
     return nullcontext()
 
 
 def run_file(path: Path) -> int:
-    namespace: Dict[str, Any] = {"__name__": "__main__"}
+    namespace: dict[str, Any] = {"__name__": "__main__"}
     runner = doctest.DocTestRunner(
         optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
     )
@@ -189,7 +186,7 @@ def run_file(path: Path) -> int:
 def run_block(
     path: Path,
     block: Block,
-    namespace: Dict[str, Any],
+    namespace: dict[str, Any],
     runner: doctest.DocTestRunner,
     parser: doctest.DocTestParser,
 ) -> int:

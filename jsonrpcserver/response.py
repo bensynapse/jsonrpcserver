@@ -5,7 +5,7 @@ A Response is a Result plus the request's id
 """
 
 import warnings
-from typing import Any, Dict, List, NamedTuple, Type, Union, cast
+from typing import Any, NamedTuple, cast
 
 from oslash.either import Either, Left, Right
 
@@ -17,7 +17,7 @@ from .codes import (
 )
 from .sentinels import NODATA
 
-Deserialized = Union[Dict[str, Any], List[Dict[str, Any]]]
+Deserialized = dict[str, Any] | list[dict[str, Any]]
 
 
 class SuccessResponse(NamedTuple):
@@ -50,7 +50,7 @@ An oslash `Either`: a `Right` holding a `SuccessResponse`, or a `Left` holding a
 oslash has no public accessor, but these attributes are stable for all of 5.x. Or turn
 it into a dict with `to_dict`.
 """
-ResponseType = Type[Response]
+ResponseType = type[Response]
 """Deprecated: use `Response`. Kept so code written for 5.0.9 keeps working."""
 
 
@@ -86,7 +86,7 @@ def ServerErrorResponse(data: Any, id: Any) -> ErrorResponse:
     return ErrorResponse(ERROR_SERVER_ERROR, "Server error", data, id)
 
 
-def to_error_dict(response: ErrorResponse) -> Dict[str, Any]:
+def to_error_dict(response: ErrorResponse) -> dict[str, Any]:
     """Turn an ErrorResponse into a JSON-RPC response dict, leaving out missing data."""
     return {
         "jsonrpc": "2.0",
@@ -100,12 +100,12 @@ def to_error_dict(response: ErrorResponse) -> Dict[str, Any]:
     }
 
 
-def to_success_dict(response: SuccessResponse) -> Dict[str, Any]:
+def to_success_dict(response: SuccessResponse) -> dict[str, Any]:
     """Turn a SuccessResponse into a JSON-RPC response dict."""
     return {"jsonrpc": "2.0", "result": response.result, "id": response.id}
 
 
-def to_dict(response: Response) -> Dict[str, Any]:
+def to_dict(response: Response) -> dict[str, Any]:
     """Turn a Response into a JSON-RPC response dict.
 
     Args:
@@ -129,12 +129,12 @@ def to_dict(response: Response) -> Dict[str, Any]:
 
 
 def to_serializable(
-    response: Union[Response, List[Response], None],
-) -> Union[Deserialized, None]:
+    response: Response | list[Response] | None,
+) -> Deserialized | None:
     """Turn a Response, a list of them or None into a dict, a list of dicts or None."""
     if response is None:
         return None
-    if isinstance(response, List):
+    if isinstance(response, list):
         return [to_dict(r) for r in response]
     return to_dict(response)
 
@@ -152,19 +152,19 @@ def _deprecated(old: str, new: str) -> None:
     )
 
 
-def serialize_error(response: ErrorResponse) -> Dict[str, Any]:
+def serialize_error(response: ErrorResponse) -> dict[str, Any]:
     """Deprecated: use `to_error_dict`. Warns with DeprecationWarning (5.0.10)."""
     _deprecated("serialize_error", "to_error_dict")
     return to_error_dict(response)
 
 
-def serialize_success(response: SuccessResponse) -> Dict[str, Any]:
+def serialize_success(response: SuccessResponse) -> dict[str, Any]:
     """Deprecated: use `to_success_dict`. Warns with DeprecationWarning (5.0.10)."""
     _deprecated("serialize_success", "to_success_dict")
     return to_success_dict(response)
 
 
-def to_serializable_one(response: Response) -> Dict[str, Any]:
+def to_serializable_one(response: Response) -> dict[str, Any]:
     """Deprecated: use `to_dict`. Warns with DeprecationWarning (5.0.10)."""
     _deprecated("to_serializable_one", "to_dict")
     return to_dict(response)

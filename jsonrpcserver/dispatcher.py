@@ -4,10 +4,11 @@ requests, providing responses.
 
 import logging
 import reprlib
+from collections.abc import Callable, Iterable
 from functools import partial
 from inspect import iscoroutine, signature
 from itertools import starmap
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import Any, cast
 
 from oslash.either import Either, Left, Right
 
@@ -38,7 +39,7 @@ from .result import (
 from .sentinels import NOCONTEXT, NODATA, NOID, Sentinel
 from .utils import compose, identity, make_list, unwrap
 
-Deserialized = Union[Dict[str, Any], List[Dict[str, Any]]]
+Deserialized = dict[str, Any] | list[dict[str, Any]]
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ def to_response(request: Request, result: Result) -> Response:
     return Right(SuccessResponse(**success._asdict(), id=request.id))
 
 
-def extract_args(request: Request, context: Any) -> List[Any]:
+def extract_args(request: Request, context: Any) -> list[Any]:
     """Extracts the positional arguments from the request.
 
     If a context object is given, it's added as the first argument.
@@ -106,7 +107,7 @@ def extract_args(request: Request, context: Any) -> List[Any]:
     return [context, *params] if context is not NOCONTEXT else params
 
 
-def extract_kwargs(request: Request) -> Dict[str, Any]:
+def extract_kwargs(request: Request) -> dict[str, Any]:
     """Extracts the keyword arguments from the reqeust.
 
     Returns: A dict containing the keyword arguments.
@@ -260,7 +261,7 @@ def get_method(
 
 def dispatch_request(
     methods: MethodsArgument, context: Any, request: Request, debug: bool = False
-) -> Tuple[Request, Result]:
+) -> tuple[Request, Result]:
     """Get the method, validates the arguments and calls the method.
 
     Returns: A tuple containing the Result of the method, along with the original
@@ -275,7 +276,7 @@ def dispatch_request(
     )
 
 
-def create_request(request: Dict[str, Any]) -> Request:
+def create_request(request: dict[str, Any]) -> Request:
     """Create a Request namedtuple from a dict."""
     return Request(
         request["method"], request.get("params", []), request.get("id", NOID)
@@ -355,7 +356,7 @@ def dispatch_single(
     context: Any,
     deserialized: Deserialized,
     debug: bool = False,
-) -> Optional[Response]:
+) -> Response | None:
     """Validate and dispatch one member of a batch."""
     if isinstance(deserialized, list):
         return Left(InvalidRequestResponse("The request failed schema validation"))
@@ -363,7 +364,7 @@ def dispatch_single(
     if isinstance(result, Left):
         return Left(result._error)
     return cast(
-        Optional[Response],
+        Response | None,
         dispatch_deserialized(methods, context, identity, unwrap(result), debug=debug),
     )
 
@@ -394,7 +395,7 @@ def member_id(member: Any) -> Any:
     of a batch.
     """
     if isinstance(member, dict):
-        id_ = cast(Dict[str, Any], member).get("id")
+        id_ = cast(dict[str, Any], member).get("id")
         if id_ is None or isinstance(id_, (str, int, float)):
             return id_
     return None
@@ -412,7 +413,7 @@ def dispatch_member(
 
     Returns: The post-processed response, or NORESPONSE for a notification.
     """
-    response: Optional[Response]
+    response: Response | None
     try:
         response = dispatch_single(validator, methods, context, member, debug=debug)
     except Exception as exc:
@@ -432,7 +433,7 @@ def dispatch_to_response_pure(
     post_process: Callable[[Response], Any],
     request: str,
     debug: bool = False,
-    max_batch_size: Optional[int] = None,
+    max_batch_size: int | None = None,
 ) -> Any:
     """A function from JSON-RPC request string to Response namedtuple(s), (yet to be
     serialized to json).
