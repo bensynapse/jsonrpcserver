@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from inspect import isawaitable
 from itertools import starmap
 from typing import Any, cast
@@ -138,6 +138,12 @@ async def dispatch_member(
     return NORESPONSE if response is None else post_process(response)
 
 
+async def limited(semaphore: asyncio.Semaphore, member: Awaitable[Any]) -> Any:
+    """Await `member` while holding `semaphore`, so only so many run at once."""
+    async with semaphore:
+        return await member
+
+
 async def dispatch_to_response_pure(
     *,
     deserializer: Callable[[str], Deserialized],
@@ -148,6 +154,7 @@ async def dispatch_to_response_pure(
     request: str,
     debug: bool = False,
     max_batch_size: int | None = None,
+    max_concurrency: int | None = None,
 ) -> Any:
     try:
         parsed = deserialize_request(deserializer, request)
@@ -159,14 +166,16 @@ async def dispatch_to_response_pure(
                 return post_process(
                     BatchTooLargeResponse(len(deserialized), max_batch_size)
                 )
-            responses = await asyncio.gather(
-                *(
-                    dispatch_member(
-                        validator, methods, context, post_process, member, debug=debug
-                    )
-                    for member in deserialized
+            members = [
+                dispatch_member(
+                    validator, methods, context, post_process, member, debug=debug
                 )
-            )
+                for member in deserialized
+            ]
+            if max_concurrency is not None:
+                semaphore = asyncio.Semaphore(max_concurrency)
+                members = [limited(semaphore, member) for member in members]
+            responses = await asyncio.gather(*members)
             return extract_list(
                 True, [response for response in responses if response is not NORESPONSE]
             )

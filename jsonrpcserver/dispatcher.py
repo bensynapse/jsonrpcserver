@@ -313,16 +313,17 @@ def BatchTooLargeResponse(size: int, max_batch_size: int) -> ErrorResponse:
     )
 
 
+def check_positive_or_none(name: str, value: object) -> None:
+    """Raise ValueError unless `value` is None or a positive int (not a bool)."""
+    if value is not None and (
+        isinstance(value, bool) or not isinstance(value, int) or value < 1
+    ):
+        raise ValueError(f"{name} must be a positive int or None, not {value!r}")
+
+
 def check_max_batch_size(max_batch_size: object) -> None:
     """Raise ValueError for a max_batch_size that makes no sense."""
-    if max_batch_size is not None and (
-        isinstance(max_batch_size, bool)
-        or not isinstance(max_batch_size, int)
-        or max_batch_size < 1
-    ):
-        raise ValueError(
-            f"max_batch_size must be a positive int or None, not {max_batch_size!r}"
-        )
+    check_positive_or_none("max_batch_size", max_batch_size)
 
 
 def member_id(member: Any) -> Any:

@@ -1,5 +1,5 @@
 ---
-description: Use jsonrpcserver in asyncio servers with async_dispatch. Async and plain methods, concurrent batches, notifications, and the async versions of every dispatch function.
+description: Use jsonrpcserver in asyncio servers with async_dispatch. Async and plain methods, concurrent batches and how to limit them, notifications, and the async versions of every dispatch function.
 ---
 
 # Async
@@ -89,9 +89,31 @@ True
 
 The responses still come back in the same order as the requests.
 
-Every request in a batch runs at once, so a big batch can start thousands of
-tasks. Set `max_batch_size` if clients can send big batches. See
+Every request in a batch runs at once. `max_batch_size`, 100 by default,
+limits how many a batch can hold. See
 [Security](security.md#limit-batch-size).
+
+### Limit how many run at once
+
+If each request opens a database connection or calls a rate-limited API, a
+batch of 100 still means 100 at once. `max_concurrency` makes the rest wait
+their turn. With a limit of 2, the same ten requests take about half a
+second:
+
+```pycon
+>>> start = time.monotonic()
+>>> responses = json.loads(asyncio.run(async_dispatch(batch, max_concurrency=2)))
+>>> len(responses)
+10
+>>> 0.4 < time.monotonic() - start < 2
+True
+```
+
+It's on every async dispatch function. The sync ones don't have it, because
+`dispatch` runs a batch one request at a time.
+
+!!! info "New in 6.0"
+    `max_concurrency`.
 
 ## Notifications
 
