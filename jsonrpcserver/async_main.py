@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable
 from typing import Any, cast
 
 from .async_dispatcher import dispatch_to_response_pure
-from .dispatcher import Deserialized, check_max_batch_size
+from .dispatcher import Deserialized, check_max_batch_size, check_positive_or_none
 from .main import (
     DEFAULT_MAX_BATCH_SIZE,
     default_deserializer,
@@ -37,6 +37,7 @@ async def dispatch_to_response(
     post_process: Callable[[Response], Any] = identity,
     debug: bool = False,
     max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
+    max_concurrency: int | None = None,
 ) -> Response | Iterable[Response] | None:
     """Dispatch a request and give the response as Response objects. Async.
 
@@ -53,6 +54,11 @@ async def dispatch_to_response(
         debug: The same as for `dispatch_to_response`.
         max_batch_size: The same as for `dispatch_to_response`. Every request in a
             batch runs at the same time, so a limit matters even more here.
+        max_concurrency: The most requests of a batch that run at the same time.
+            The rest wait their turn. The default, None, runs them all at once.
+            Use it when each request opens a database connection or calls an API
+            with a rate limit. Async only, because `dispatch` runs a batch one
+            request at a time. New in 6.0.
 
     Returns:
         A Response for a single request, a list of Responses for a batch, or None
@@ -60,9 +66,11 @@ async def dispatch_to_response(
             batch, but it's a list.
 
     Raises:
-        ValueError: If `max_batch_size` isn't None or a positive int.
+        ValueError: If `max_batch_size` or `max_concurrency` isn't None or a
+            positive int.
     """
     check_max_batch_size(max_batch_size)
+    check_positive_or_none("max_concurrency", max_concurrency)
     response = await dispatch_to_response_pure(
         deserializer=deserializer,
         validator=validator,
@@ -72,6 +80,7 @@ async def dispatch_to_response(
         request=request,
         debug=debug,
         max_batch_size=max_batch_size,
+        max_concurrency=max_concurrency,
     )
     return cast(Response | Iterable[Response] | None, response)
 
@@ -85,6 +94,7 @@ async def dispatch_to_serializable(
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
     max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
+    max_concurrency: int | None = None,
 ) -> dict[str, Any] | list[dict[str, Any]] | None:
     """Dispatch a request and give the response as a dict. Async.
 
@@ -99,13 +109,15 @@ async def dispatch_to_serializable(
         validator: The same as for `dispatch_to_response`.
         debug: The same as for `dispatch_to_response`.
         max_batch_size: The same as for `dispatch_to_response`.
+        max_concurrency: The same as for `async_dispatch_to_response`.
 
     Returns:
         The response as a dict, a list of dicts for a batch, or None if there's
             nothing to send back.
 
     Raises:
-        ValueError: If `max_batch_size` isn't None or a positive int.
+        ValueError: If `max_batch_size` or `max_concurrency` isn't None or a
+            positive int.
     """
     return cast(
         dict[str, Any] | list[dict[str, Any]] | None,
@@ -117,6 +129,7 @@ async def dispatch_to_serializable(
             validator=validator,
             debug=debug,
             max_batch_size=max_batch_size,
+            max_concurrency=max_concurrency,
             post_process=to_serializable,
         ),
     )
@@ -131,6 +144,7 @@ async def dispatch_to_json(
     validator: Callable[[Deserialized], object] = default_validator,
     debug: bool = False,
     max_batch_size: int | None = DEFAULT_MAX_BATCH_SIZE,
+    max_concurrency: int | None = None,
     serializer: Callable[
         [dict[str, Any] | list[dict[str, Any]] | None], str
     ] = default_serializer,
@@ -149,13 +163,15 @@ async def dispatch_to_json(
         validator: The same as for `dispatch_to_response`.
         debug: The same as for `dispatch_to_response`.
         max_batch_size: The same as for `dispatch_to_response`.
+        max_concurrency: The same as for `async_dispatch_to_response`.
         serializer: The same as for `dispatch`.
 
     Returns:
         The response as a JSON string, or "" if there's nothing to send back.
 
     Raises:
-        ValueError: If `max_batch_size` isn't None or a positive int.
+        ValueError: If `max_batch_size` or `max_concurrency` isn't None or a
+            positive int.
 
     Example:
         >>> import asyncio
@@ -174,6 +190,7 @@ async def dispatch_to_json(
         validator=validator,
         debug=debug,
         max_batch_size=max_batch_size,
+        max_concurrency=max_concurrency,
     )
     return "" if response is None else serialize(serializer, response, debug)
 

@@ -6,6 +6,12 @@
 lists what changes, and [#320](https://github.com/bensynapse/jsonrpcserver/issues/320) tracks it. 5.x gets fixes
 on the `release/5.x` branch.
 
+### Added
+
+- `max_concurrency` on `async_dispatch` and the other async dispatch functions:
+  the most requests of a batch that run at once. The default, None, runs them
+  all at once, as before.
+
 ### Changed
 
 - jsonrpcserver no longer uses oslash. `Success` returns a `SuccessResult`,
