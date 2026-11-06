@@ -15,9 +15,29 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      checks: read
       id-token: write
       attestations: write
     steps:
+      - name: The tagged commit must be on main or a release/ branch, and CI must have passed on it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          on=""
+          for b in main $(gh api "repos/$GITHUB_REPOSITORY/branches" --paginate --jq '.[].name | select(startswith("release/"))'); do
+            status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$b...$GITHUB_SHA" --jq .status)
+            if [ "$status" = identical ] || [ "$status" = behind ]; then on=$b; break; fi
+          done
+          if [ -z "$on" ]; then
+            echo "::error::$GITHUB_SHA is not on main or a release/ branch. Tag a commit that is."
+            exit 1
+          fi
+          passed=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?check_name=CI%20OK" --jq '[.check_runs[] | select(.conclusion == "success")] | length')
+          if [ "$passed" = 0 ]; then
+            echo "::error::CI OK has not passed on $GITHUB_SHA. Wait for CI on that commit, then push the tag again."
+            exit 1
+          fi
+          echo "$GITHUB_SHA is on $on, and CI OK passed on it."
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false

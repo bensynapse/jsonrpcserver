@@ -2,9 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # release/ branches carry patch releases for an older line (RELEASING.md).
+    branches: [main, "release/**"]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Weekly on main, so a tool that drifts under a pin shows up here before
+    # it breaks somebody's pull request (the docs build did, 2026-11-06).
+    - cron: "23 5 * * 1"
 
 permissions:
   contents: read
