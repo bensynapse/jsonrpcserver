@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -199,7 +199,7 @@ async def test_dispatch_to_response_pure_server_error(
     ],
 )
 async def test_batch_keeps_valid_members(asynchronous: bool, invalid: Any) -> None:
-    called: List[int] = []
+    called: list[int] = []
 
     def record(value: int) -> Result:
         called.append(value)
@@ -216,7 +216,7 @@ async def test_batch_keeps_valid_members(asynchronous: bool, invalid: Any) -> No
             {"jsonrpc": "2.0", "method": "record", "params": [3], "id": None},
         ]
     )
-    methods: Dict[str, Any] = {"record": async_record if asynchronous else record}
+    methods: dict[str, Any] = {"record": async_record if asynchronous else record}
     response = (
         await async_dispatch(request, methods)
         if asynchronous
@@ -253,7 +253,7 @@ async def test_batch_keeps_valid_members(asynchronous: bool, invalid: Any) -> No
 async def test_batch_response_shape(
     asynchronous: bool, payload: str, expected: Any
 ) -> None:
-    methods: Dict[str, Any] = {"ping": ping if asynchronous else sync_ping}
+    methods: dict[str, Any] = {"ping": ping if asynchronous else sync_ping}
     response = (
         await async_dispatch(payload, methods)
         if asynchronous
@@ -275,7 +275,7 @@ async def test_batch_response_shape(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("asynchronous", [False, True])
 async def test_batch_custom_validator_and_context(asynchronous: bool) -> None:
-    checked: List[Dict[str, Any]] = []
+    checked: list[dict[str, Any]] = []
 
     def validator(member: Any) -> Any:
         checked.append(member)
@@ -293,7 +293,7 @@ async def test_batch_custom_validator_and_context(asynchronous: bool) -> None:
         {"jsonrpc": "2.0", "method": "echo", "params": ["data"], "id": n}
         for n in (1, 2, 3)
     ]
-    methods: Dict[str, Any] = {"echo": async_echo if asynchronous else echo}
+    methods: dict[str, Any] = {"echo": async_echo if asynchronous else echo}
     response = (
         await async_dispatch(
             json.dumps(members), methods, validator=validator, context="prefix:"
@@ -313,7 +313,7 @@ async def test_batch_custom_validator_and_context(asynchronous: bool) -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("asynchronous", [False, True])
 async def test_batch_post_process_preserves_none(asynchronous: bool) -> None:
-    seen: List[Any] = []
+    seen: list[Any] = []
 
     def post_process(response: Any) -> None:
         seen.append(to_dict(response))
@@ -322,8 +322,8 @@ async def test_batch_post_process_preserves_none(asynchronous: bool) -> None:
         '[1, {"jsonrpc": "2.0", "method": "ping", "id": 1}, '
         '{"jsonrpc": "2.0", "method": "ping"}]'
     )
-    methods: Dict[str, Any] = {"ping": ping if asynchronous else sync_ping}
-    options: Dict[str, Any] = {
+    methods: dict[str, Any] = {"ping": ping if asynchronous else sync_ping}
+    options: dict[str, Any] = {
         "deserializer": default_deserializer,
         "validator": default_validator,
         "methods": methods,
@@ -345,7 +345,7 @@ async def test_batch_post_process_preserves_none(asynchronous: bool) -> None:
 @pytest.mark.asyncio
 async def test_batch_async_members_run_concurrently() -> None:
     ready = asyncio.Event()
-    started: List[int] = []
+    started: list[int] = []
 
     async def rendezvous(value: int) -> Result:
         started.append(value)

@@ -15,19 +15,20 @@ arguments), not both. That's a JSON-RPC rule.
 """
 
 import warnings
-from typing import Any, Callable, Dict, Mapping, Optional, TypeVar, overload
+from collections.abc import Callable, Mapping
+from typing import Any, TypeVar, overload
 
 from .result import Result
 
 Method = Callable[..., Result]
-Methods = Dict[str, Method]
+Methods = dict[str, Method]
 # Async methods return a coroutine rather than a Result, so the dispatch functions
 # accept any callable. They check what comes back at run time.
 AnyMethod = Callable[..., Any]
 # What the dispatch functions accept for their methods argument. Any mapping will do.
 MethodsArgument = Mapping[str, AnyMethod]
 
-global_methods: Dict[str, AnyMethod] = {}
+global_methods: dict[str, AnyMethod] = {}
 """The methods registered with `@method`, as a dict of names to functions.
 
 The dispatch functions use it when they're called without `methods`. It's shared by
@@ -38,14 +39,14 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 @overload
-def method(f: F, name: Optional[str] = None) -> F: ...
+def method(f: F, name: str | None = None) -> F: ...
 
 
 @overload
-def method(f: None = None, name: Optional[str] = None) -> Callable[[F], F]: ...
+def method(f: None = None, name: str | None = None) -> Callable[[F], F]: ...
 
 
-def method(f: Optional[F] = None, name: Optional[str] = None) -> Any:
+def method(f: Callable[..., Any] | None = None, name: str | None = None) -> Any:
     """Register a function as a JSON-RPC method.
 
     The function is added to `global_methods`, which the dispatch functions use when

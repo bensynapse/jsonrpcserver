@@ -1,7 +1,8 @@
 """Test dispatcher.py"""
 
 import json
-from typing import Any, Callable, Dict
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import Mock, patch, sentinel
 
 import pytest
@@ -965,7 +966,7 @@ def test_examples_multiple_invalid_jsonrpc() -> None:
 
 
 def test_examples_mixed_requests_and_notifications() -> None:
-    methods: Dict[str, Callable[..., Any]] = {
+    methods: dict[str, Callable[..., Any]] = {
         "sum": lambda *args: Success(sum(args)),
         "notify_hello": lambda *args: Success(19),
         "subtract": lambda *args: Success(args[0] - sum(args[1:])),

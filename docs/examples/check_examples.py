@@ -20,8 +20,8 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
 
 HERE = Path(__file__).parent
 PORT = 8000
@@ -51,7 +51,7 @@ CURL = (
 CURL_OUTPUT = '{"jsonrpc": "2.0", "result": "pong", "id": 1}'
 
 
-def post(body: str) -> Tuple[int, str, str]:
+def post(body: str) -> tuple[int, str, str]:
     request = urllib.request.Request(
         f"http://localhost:{PORT}/",
         data=body.encode(),
@@ -68,7 +68,7 @@ def post(body: str) -> Tuple[int, str, str]:
         return exc.code, exc.headers.get("Content-Type", ""), exc.read().decode()
 
 
-def post_raw(body: Optional[bytes]) -> int:
+def post_raw(body: bytes | None) -> int:
     """POST without urllib's help: no Content-Length when body is None."""
     connection = http.client.HTTPConnection("localhost", PORT, timeout=10)
     try:
@@ -85,7 +85,7 @@ def post_raw(body: Optional[bytes]) -> int:
         connection.close()
 
 
-def post_raw_body(body: bytes) -> Tuple[int, str]:
+def post_raw_body(body: bytes) -> tuple[int, str]:
     """POST bytes that may not be valid UTF-8. Return the status and body."""
     connection = http.client.HTTPConnection("localhost", PORT, timeout=10)
     try:
@@ -182,7 +182,7 @@ def check_socketio() -> None:
         assert json.loads(data) == BATCH_REFUSED, data
 
 
-EXAMPLES: Dict[str, Callable[[], None]] = {
+EXAMPLES: dict[str, Callable[[], None]] = {
     "quickstart.py": check_quickstart,
     "http_server.py": check_http_server,
     "flask_server.py": check_http(413),
@@ -248,7 +248,7 @@ def run(example: str) -> bool:
     return True
 
 
-def main(names: List[str]) -> int:
+def main(names: list[str]) -> int:
     on_disk = {path.name for path in HERE.glob("*.py")} - NOT_SERVERS
     missing = on_disk - set(EXAMPLES)
     if missing:

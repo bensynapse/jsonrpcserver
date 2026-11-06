@@ -7,7 +7,7 @@ import datetime
 import json
 import subprocess
 import sys
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -53,7 +53,7 @@ def returns_none() -> None:
     return None
 
 
-METHODS: Dict[str, Any] = {
+METHODS: dict[str, Any] = {
     "ping": ping,
     "now": now,
     "nan": nan,
@@ -62,7 +62,7 @@ METHODS: Dict[str, Any] = {
 }
 
 
-def request(method: str, id_: Any = 1) -> Dict[str, Any]:
+def request(method: str, id_: Any = 1) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "method": method, "id": id_}
 
 
@@ -353,7 +353,7 @@ def check(text: str) -> None:
         pytest.fail(f"Output contains {constant}")
 
     parsed = json.loads(text, parse_constant=reject)
-    responses: List[Any] = parsed if isinstance(parsed, list) else [parsed]  # pyright: ignore[reportUnknownVariableType]
+    responses: list[Any] = parsed if isinstance(parsed, list) else [parsed]  # pyright: ignore[reportUnknownVariableType]
     for response in responses:
         assert_valid_response(response)
 
@@ -361,7 +361,7 @@ def check(text: str) -> None:
 @settings(max_examples=300, deadline=None)
 @given(requests, st.booleans())
 def test_dispatch_always_responds(value: Any, validate: bool) -> None:
-    options: Dict[str, Any] = {} if validate else {"validator": no_validation}
+    options: dict[str, Any] = {} if validate else {"validator": no_validation}
     check(dispatch(json.dumps(value), METHODS, **options))
 
 

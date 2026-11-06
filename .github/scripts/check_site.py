@@ -22,7 +22,7 @@ import urllib.error
 import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 from urllib.parse import urldefrag
 
 from playwright.sync_api import Page, sync_playwright
@@ -64,11 +64,11 @@ class Server(ThreadingHTTPServer):
             super().handle_error(request, client_address)
 
 
-def record(errors: List[str], exc: Exception) -> None:
+def record(errors: list[str], exc: Exception) -> None:
     errors.append(str(exc))
 
 
-def page_info(page: Page) -> Dict[str, Any]:
+def page_info(page: Page) -> dict[str, Any]:
     return page.evaluate(
         """() => {
         const q = (s) => document.querySelector(s);
@@ -87,9 +87,9 @@ def page_info(page: Page) -> Dict[str, Any]:
     )
 
 
-def axe_problems(page: Page, axe: str) -> List[str]:
+def axe_problems(page: Page, axe: str) -> list[str]:
     page.add_script_tag(content=axe)
-    violations: List[Dict[str, Any]] = page.evaluate(
+    violations: list[dict[str, Any]] = page.evaluate(
         """async () => {
         const result = await axe.run(document, {
           runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"],
@@ -113,9 +113,9 @@ def main(site: Path, axe: str) -> int:
     sitemap = (site / "sitemap.xml").read_text()
     urls = re.findall(r"<loc>(.*?)</loc>", sitemap)
     pages = [url.replace(LIVE, BASE) for url in urls]
-    problems: List[str] = []
-    links: Set[str] = set()
-    ids: Dict[str, Set[str]] = {}
+    problems: list[str] = []
+    links: set[str] = set()
+    ids: dict[str, set[str]] = {}
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         for scheme in ("light", "dark"):
@@ -126,7 +126,7 @@ def main(site: Path, axe: str) -> int:
                     is_mobile=name == "phone",
                 )
                 page = context.new_page()
-                errors: List[str] = []
+                errors: list[str] = []
                 page.on("pageerror", functools.partial(record, errors))
                 for url in [*pages, BASE + "no-such-page/"]:
                     errors.clear()
@@ -159,9 +159,9 @@ def main(site: Path, axe: str) -> int:
     return 1 if problems else 0
 
 
-def check_links(links: Set[str], ids: Dict[str, Set[str]]) -> List[str]:
-    problems: List[str] = []
-    status: Dict[str, int] = {}
+def check_links(links: set[str], ids: dict[str, set[str]]) -> list[str]:
+    problems: list[str] = []
+    status: dict[str, int] = {}
     for link in sorted(links):
         # The banner and the 404 page link to the live site's address.
         url, fragment = urldefrag(link.replace(LIVE, BASE))
@@ -184,7 +184,7 @@ def fetch_status(url: str) -> int:
         return exc.code
 
 
-def parse_args(argv: List[str]) -> Tuple[Path, str]:
+def parse_args(argv: list[str]) -> tuple[Path, str]:
     if len(argv) != 2:
         raise SystemExit(__doc__)
     return Path(argv[0]), Path(argv[1]).read_text()

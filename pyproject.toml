@@ -9,7 +9,7 @@ description = "Process incoming JSON-RPC 2.0 requests in Python"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 authors = [
     {name = "Beau Barker", email = "beau@explodinglabs.com"},
 ]
@@ -23,9 +23,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -74,7 +71,7 @@ include = [
 ]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py311"
 
 
 [tool.ruff.format]
@@ -89,8 +86,7 @@ select = ["E", "W", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
 "tests/*" = ["E501"]
 
 [tool.mypy]
-# mypy only accepts 3.10 or later here. pyright checks the 3.8 target.
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 files = ["jsonrpcserver", "tests"]
 
@@ -102,7 +98,7 @@ follow_untyped_imports = true
 
 [tool.pyright]
 include = ["jsonrpcserver", "tests"]
-pythonVersion = "3.8"
+pythonVersion = "3.11"
 typeCheckingMode = "strict"
 # oslash keeps the value of Left and Right in _error and _value, with no public
 # accessor, so the library has to read them.
@@ -120,7 +116,7 @@ branch = true
 source = ["jsonrpcserver"]
 
 [tool.coverage.report]
-# Python 3.8 counts the "..." body of an overload as a branch.
+# The "..." body of an overload is not code to cover.
 exclude_also = ["@overload"]
 fail_under = 100
 show_missing = true

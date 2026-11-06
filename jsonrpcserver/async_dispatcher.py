@@ -2,10 +2,11 @@
 
 import asyncio
 import logging
+from collections.abc import Callable
 from functools import partial
 from inspect import isawaitable
 from itertools import starmap
-from typing import Any, Callable, Optional, Tuple, cast
+from typing import Any, cast
 
 from oslash.either import Left
 
@@ -67,7 +68,7 @@ async def call(
 
 async def dispatch_request(
     methods: MethodsArgument, context: Any, request: Request, debug: bool = False
-) -> Tuple[Request, Result]:
+) -> tuple[Request, Result]:
     method = get_method(methods, request.method).bind(
         partial(validate_args, request, context)
     )
@@ -104,7 +105,7 @@ async def dispatch_single(
     context: Any,
     deserialized: Deserialized,
     debug: bool = False,
-) -> Optional[Response]:
+) -> Response | None:
     """Validate and dispatch one member of a batch."""
     if isinstance(deserialized, list):
         return Left(InvalidRequestResponse("The request failed schema validation"))
@@ -112,7 +113,7 @@ async def dispatch_single(
     if isinstance(result, Left):
         return Left(result._error)
     return cast(
-        Optional[Response],
+        Response | None,
         await dispatch_deserialized(
             methods, context, identity, unwrap(result), debug=debug
         ),
@@ -131,7 +132,7 @@ async def dispatch_member(
 
     Returns: The post-processed response, or NORESPONSE for a notification.
     """
-    response: Optional[Response]
+    response: Response | None
     try:
         response = await dispatch_single(
             validator, methods, context, member, debug=debug
@@ -153,7 +154,7 @@ async def dispatch_to_response_pure(
     post_process: Callable[[Response], Any],
     request: str,
     debug: bool = False,
-    max_batch_size: Optional[int] = None,
+    max_batch_size: int | None = None,
 ) -> Any:
     try:
         parsed = deserialize_request(deserializer, request)
