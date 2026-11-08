@@ -123,6 +123,7 @@ nav:
       - websockets: frameworks/websockets.md
       - ZeroMQ: frameworks/zeromq.md
       - Socket.IO: frameworks/socketio.md
+  - JSON-RPC 2.0 spec: spec.md
   - Security: security.md
   - API reference: reference.md
   - Migration: migration.md

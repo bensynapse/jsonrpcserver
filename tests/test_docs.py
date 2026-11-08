@@ -135,3 +135,18 @@ def test_old_domains_are_named_not_linked() -> None:
     for match in re.finditer(r"jsonrpc(?:client|server)\.com", faq):
         before = faq[max(0, match.start() - 12) : match.start()]
         assert "://" not in before and "](" not in before and "www." not in before
+
+
+def test_spec_page_links_tests_that_exist() -> None:
+    """docs/spec.md links each rule to a test. The test must be in that file."""
+    text = (DOCS / "spec.md").read_text()
+    links = re.findall(
+        r"\[`(test_\w+)`\]\(https://github\.com/bensynapse/jsonrpcserver/blob/release/5\.x/(tests/test_\w+\.py)\)",
+        text,
+    )
+    assert len(links) > 40
+    for name, path in links:
+        source = (ROOT / path).read_text()
+        assert re.search(rf"^(async )?def {name}\(", source, re.M), (name, path)
+    # Every test link on the page has that form, so none escapes the check.
+    assert text.count("/tests/") == len(links)
