@@ -103,6 +103,9 @@ explains why.
   framework examples and the
   [API reference](https://bensynapse.github.io/jsonrpcserver/reference/).
   The menu next to the title switches between the docs for 5.x and 6.0.
+- [JSON-RPC 2.0, section by section](https://bensynapse.github.io/jsonrpcserver/spec/):
+  each rule of the spec next to what jsonrpcserver does and the test that
+  shows it. It also lists where jsonrpcserver differs.
 - [Migrating from 4.x](https://bensynapse.github.io/jsonrpcserver/migration/):
   methods return `Success(value)` or `Error(...)`. From 5.1.0 a method can also
   return a plain value, as in 4.x.

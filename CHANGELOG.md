@@ -8,6 +8,16 @@
   needs. `pip install -e ".[test]"` was enough to install the package but not
   to run its tests.
 
+### Documentation
+
+- New page: [JSON-RPC 2.0, section by section](https://bensynapse.github.io/jsonrpcserver/spec/).
+  It puts each rule of the spec next to what jsonrpcserver does and its test.
+  It also lists seven places where jsonrpcserver differs from the spec.
+  `tests/test_spec.py` adds tests for the rules no other test showed directly.
+- The validation page and the `default_deserializer` docstring no longer say
+  that numbers too big for a float aren't JSON. RFC 8259 allows them, and lets
+  a parser limit their range, which is what jsonrpcserver does.
+
 ## 6.0.0rc1 (2026-11-06)
 
 The first release candidate of 6.0. `pip install --pre jsonrpcserver` installs
