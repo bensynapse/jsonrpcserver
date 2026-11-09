@@ -28,6 +28,7 @@ def test_error_warns(code: Any, message: Any, warning: str) -> None:
     "code,message,warning",
     [
         ("abc", "msg", "error codes must be integers"),
+        (True, "msg", "error codes must be integers"),
         (1, None, "error messages should be strings"),
     ],
 )

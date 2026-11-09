@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+
+- New page: [JSON-RPC 2.0, section by section](https://bensynapse.github.io/jsonrpcserver/spec/).
+  It puts each rule of the spec next to what jsonrpcserver does and its test.
+  It also lists nine places where jsonrpcserver differs from the spec.
+  `tests/test_spec.py` adds tests for the rules no other test showed directly.
+
 ## 5.2.0 (2026-11-06)
 
 Warnings about what 6.0 changes, so an upgrade doesn't surprise you. Nothing
