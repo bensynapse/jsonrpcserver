@@ -57,7 +57,9 @@ def default_deserializer(request: str) -> Any:
     """json.loads, but `NaN`, `Infinity`, `-Infinity` and numbers too big for a float
     raise ValueError, which the client gets as a -32700 Parse error.
 
-    They aren't valid JSON (RFC 8259, section 6). New in 6.0: 5.x accepted them.
+    The first three aren't valid JSON (RFC 8259, section 6). The same section lets a
+    parser limit the range of numbers, and a float can't hold one like 1e400. New in
+    6.0: 5.x accepted them.
     """
     return json.loads(
         request, parse_constant=_reject_constant, parse_float=_finite_float

@@ -117,8 +117,8 @@ strangers can reach.
 
 ## NaN, Infinity and huge numbers
 
-`NaN`, `Infinity`, `-Infinity` and numbers too big for a float, like `1e400`,
-aren't valid JSON. Python's `json` module accepts them anyway, and the
+`NaN`, `Infinity` and `-Infinity` aren't valid JSON, and a number like `1e400`
+is too big for a float. Python's `json` module accepts them anyway, and the
 validator can't see them, because they're already floats by the time it runs.
 So the default deserializer rejects them, and the client gets a Parse error:
 

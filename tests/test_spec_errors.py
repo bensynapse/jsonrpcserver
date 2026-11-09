@@ -28,6 +28,7 @@ def test_error_raises(code: Any, message: Any, error: str) -> None:
     "code,message,error",
     [
         ("abc", "msg", "error codes must be integers"),
+        (True, "msg", "error codes must be integers"),
         (1, None, "error messages must be strings"),
     ],
 )

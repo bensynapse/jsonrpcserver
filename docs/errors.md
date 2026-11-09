@@ -22,6 +22,9 @@ These are the errors jsonrpcserver sends by itself. Your own errors, from
 reaches the client. Keep that in mind if you write a custom deserializer,
 because its exception messages are sent as they are.
 
+[JSON-RPC 2.0, section by section](spec.md#the-error-codes) puts each code
+next to the spec's rule for it and the test that shows it.
+
 !!! info "Changed in 5.0.10"
     From 5.0.0 to 5.0.9, the -32603 and -32000 errors always carried the
     exception message. It could hold passwords, paths or SQL. See

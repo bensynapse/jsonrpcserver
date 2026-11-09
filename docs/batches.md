@@ -56,6 +56,9 @@ back as an array:
 jsonrpcserver sends the responses in the same order as the requests. The spec
 doesn't require that, so clients should match responses to requests by `id`.
 
+[JSON-RPC 2.0, section by section](spec.md#6-batches) puts each batch rule
+in the spec next to the test that shows it.
+
 `dispatch` runs the requests one after another. `async_dispatch` runs them all
 at once. See [Async](async.md#batches-run-concurrently).
 
