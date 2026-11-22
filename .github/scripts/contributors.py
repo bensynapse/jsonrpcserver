@@ -8,12 +8,13 @@ hour, which isn't enough for every contributor.
 
 Each person on GitHub's contributor list gets one entry, except bots. The
 creator comes first, then everyone else by login. Each entry links the
-person's first commit on main. If that commit came in a merged pull request
-the same person opened, the entry links the pull request instead. The text of
-the link is the pull request's or the commit's own title, so the page never
-describes anyone's work in words they didn't write.
+person's first commit on main, by author date. If that commit came in a
+merged pull request the same person opened, the entry links the pull request
+instead. The text of the link is the pull request's or the commit's own
+title, so the page never describes anyone's work in words they didn't write.
 """
 
+import html
 import json
 import os
 import re
@@ -31,8 +32,8 @@ PAGE = ROOT / "docs" / "contributors.md"
 API = "https://api.github.com"
 CREATOR = "bcb"
 CREATOR_NAME = "Beau Barker"
-# Characters that would change the Markdown around a title.
-MARKDOWN = re.compile(r"([\\`*_\[\]<>|#~])")
+# Characters Python-Markdown would read as markup. It knows these escapes.
+MARKDOWN = re.compile(r"([\\`*_\[\]#])")
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,8 @@ class Entry:
 
 
 def repo_slug() -> str:
-    match = re.search(r"^repo_name: (\S+)$", (ROOT / "mkdocs.yml").read_text(), re.M)
+    config = (ROOT / "mkdocs.yml").read_text("utf-8")
+    match = re.search(r"^repo_name: (\S+)$", config, re.M)
     if not match:
         raise SystemExit("mkdocs.yml has no repo_name.")
     return match.group(1)
@@ -91,37 +93,37 @@ def on_main(sha: str) -> bool:
 
 
 def first_commit(slug: str, login: str) -> str | None:
-    """The person's oldest commit on main that isn't a merge commit."""
+    """The person's oldest commit on main by author date, merges left out."""
     query = urllib.parse.urlencode({"author": login, "sha": "main", "per_page": 100})
-    data, link = get(f"/repos/{slug}/commits?{query}")
-    last = next_link(link, "last")
-    if last:
-        data, link = get(last)
-    # Newest first, so walk back from the end of the last page.
-    while True:
-        for commit in reversed(data):
-            if len(commit["parents"]) <= 1:
-                return str(commit["sha"])
-        previous = next_link(link, "prev")
-        if not previous:
-            return None
-        data, link = get(previous)
+    commits = get_all(f"/repos/{slug}/commits?{query}")
+    # Newest first. On a tie, the one listed later is the older one.
+    candidates = [
+        (commit["commit"]["author"]["date"], -index, str(commit["sha"]))
+        for index, commit in enumerate(commits)
+        if len(commit["parents"]) <= 1
+    ]
+    return min(candidates)[2] if candidates else None
 
 
 def first_pull(slug: str, login: str) -> dict[str, Any] | None:
-    """The person's oldest merged pull request.
+    """The person's oldest merged pull request whose merge commit is on main.
 
     The commit search above misses a squashed commit whose author email names
     an older login of the same account. GitHub still counts it as theirs.
     """
     query = f"repo:{slug} type:pr is:merged author:{login}"
-    params = urllib.parse.urlencode({"q": query, "sort": "created", "order": "asc"})
-    found, _ = get(f"/search/issues?{params}")
-    for item in found["items"]:
-        pull: dict[str, Any] = get(f"/repos/{slug}/pulls/{item['number']}")[0]
-        sha = pull["merge_commit_sha"]
-        if sha and on_main(sha):
-            return pull
+    params = {"q": query, "sort": "created", "order": "asc", "per_page": 100}
+    page: str | None = f"/search/issues?{urllib.parse.urlencode(params)}"
+    while page:
+        found, link = get(page)
+        if found["incomplete_results"]:
+            raise SystemExit(f"{login}: GitHub's search timed out. Try again.")
+        for item in found["items"]:
+            pull: dict[str, Any] = get(f"/repos/{slug}/pulls/{item['number']}")[0]
+            sha = pull["merge_commit_sha"]
+            if sha and on_main(sha):
+                return pull
+        page = next_link(link, "next")
     return None
 
 
@@ -147,7 +149,7 @@ def entry(slug: str, login: str) -> Entry:
         if (
             pull.get("merged_at")
             and pull["base"]["repo"]["full_name"] == slug
-            and pull["user"]["login"] == login
+            and pull["user"]["id"] == user["id"]
             and pull.get("merge_commit_sha")
             and on_main(pull["merge_commit_sha"])
         ):
@@ -160,7 +162,11 @@ def entry(slug: str, login: str) -> Entry:
 
 
 def escape(text: str) -> str:
-    return MARKDOWN.sub(r"\\\1", text)
+    """Text that renders as itself inside a list item or a link."""
+    text = html.escape(text, quote=False)
+    text = MARKDOWN.sub(r"\\\1", text)
+    # A name like "1. Foo" or "- Foo" would start a nested list.
+    return re.sub(r"^(\d*)([.+-])(?= )", r"\1\\\2", text)
 
 
 def person(item: Entry) -> str:
@@ -173,9 +179,9 @@ def render(
 ) -> str:
     lines = [
         "---",
-        f"description: Everyone whose changes are in {project}, starting with"
-        " its creator Beau Barker, with a link to each person's first merged"
-        " change.",
+        f"description: Everyone on GitHub's contributor list for {project},"
+        " starting with its creator Beau Barker, with a link to each person's"
+        " first merged change.",
         "---",
         "",
         "<!-- Generated by .github/scripts/contributors.py. Edit the script and",
@@ -242,7 +248,10 @@ def main() -> int:
         for p in everyone
         if p["type"] == "Anonymous" and p["name"].casefold() not in known
     )
-    PAGE.write_text(render(project, slug, creator, others, bool(unlinked)))
+    # Write the whole page, then swap it in, so a failure leaves the old one.
+    partial = PAGE.with_suffix(".md.partial")
+    partial.write_text(render(project, slug, creator, others, bool(unlinked)), "utf-8")
+    partial.replace(PAGE)
     left_out = [p["login"] for p in people if p["login"] not in logins]
     print(f"{PAGE.relative_to(ROOT)}: {len(others) + 1} people.")
     print(f"Bots left out: {', '.join(left_out) or 'none'}.")
