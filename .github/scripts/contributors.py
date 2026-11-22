@@ -19,6 +19,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
@@ -147,6 +148,8 @@ def entry(slug: str, login: str) -> Entry:
             pull.get("merged_at")
             and pull["base"]["repo"]["full_name"] == slug
             and pull["user"]["login"] == login
+            and pull.get("merge_commit_sha")
+            and on_main(pull["merge_commit_sha"])
         ):
             title, url = pull["title"], pull["html_url"]
             break
@@ -198,8 +201,8 @@ def render(
     if unlinked:
         lines += [
             "",
-            "Some early commits came from email addresses that aren't linked to"
-            " a GitHub account, so GitHub can't list their authors. Their work"
+            "Some commits came from email addresses that aren't linked to a"
+            " GitHub account, so GitHub can't list their authors. Their work"
             f" is in the [commit history](https://github.com/{slug}/commits/main/).",
         ]
     lines += [
@@ -249,4 +252,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except urllib.error.HTTPError as error:
+        # 403 and 429 are usually the rate limit: set GITHUB_TOKEN.
+        sys.exit(f"GitHub API: {error.code} {error.reason} for {error.url}")
