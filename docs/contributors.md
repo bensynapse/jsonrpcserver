@@ -29,7 +29,7 @@ Everyone else on GitHub's contributor list for jsonrpcserver is below, by GitHub
 - voice of texnoforge ([@voice-of-texnoforge](https://github.com/voice-of-texnoforge)): [Improve docs landing page visual structure](https://github.com/bensynapse/jsonrpcserver/pull/167) (2021)
 - Janus Troelsen ([@ysangkok](https://github.com/ysangkok)): [Import ABC from collections.abc](https://github.com/bensynapse/jsonrpcserver/pull/96) (2019)
 
-Some early commits came from email addresses that aren't linked to a GitHub account, so GitHub can't list their authors. Their work is in the [commit history](https://github.com/bensynapse/jsonrpcserver/commits/main/).
+Some commits came from email addresses that aren't linked to a GitHub account, so GitHub can't list their authors. Their work is in the [commit history](https://github.com/bensynapse/jsonrpcserver/commits/main/).
 
 ## How to contribute
 
